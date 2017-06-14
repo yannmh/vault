@@ -545,6 +545,8 @@ type TokenEntry struct {
 	NumUsesDeprecated        int           `json:"NumUses" mapstructure:"NumUses" structs:"NumUses"`
 	CreationTimeDeprecated   int64         `json:"CreationTime" mapstructure:"CreationTime" structs:"CreationTime"`
 	ExplicitMaxTTLDeprecated time.Duration `json:"ExplicitMaxTTL" mapstructure:"ExplicitMaxTTL" structs:"ExplicitMaxTTL"`
+
+	EntityID string `json:"entity_id" mapstructure:"entity_id" structs:"entity_id"`
 }
 
 // tsRoleEntry contains token store role information
@@ -1914,6 +1916,7 @@ func (ts *TokenStore) handleLookup(
 			"expire_time":      nil,
 			"ttl":              int64(0),
 			"explicit_max_ttl": int64(out.ExplicitMaxTTL.Seconds()),
+			"entity_id":        out.EntityID,
 		},
 	}
 

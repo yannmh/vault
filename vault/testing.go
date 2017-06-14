@@ -21,6 +21,8 @@ import (
 	log "github.com/mgutz/logxi/v1"
 	"github.com/mitchellh/copystructure"
 
+	credGithub "github.com/hashicorp/vault/builtin/credential/github"
+
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/net/http2"
 
@@ -122,6 +124,7 @@ func testCoreConfig(t testing.TB, physicalBackend physical.Backend, logger log.L
 			}, nil
 		},
 	}
+
 	noopBackends := make(map[string]logical.Factory)
 	noopBackends["noop"] = func(config *logical.BackendConfig) (logical.Backend, error) {
 		b := new(framework.Backend)
@@ -131,10 +134,20 @@ func testCoreConfig(t testing.TB, physicalBackend physical.Backend, logger log.L
 	noopBackends["http"] = func(config *logical.BackendConfig) (logical.Backend, error) {
 		return new(rawHTTP), nil
 	}
+
+	credentialBackends := make(map[string]logical.Factory)
+	for backendName, backendFactory := range noopBackends {
+		credentialBackends[backendName] = backendFactory
+	}
+	for backendName, backendFactory := range testCredentialBackends {
+		credentialBackends[backendName] = backendFactory
+	}
+
 	logicalBackends := make(map[string]logical.Factory)
 	for backendName, backendFactory := range noopBackends {
 		logicalBackends[backendName] = backendFactory
 	}
+
 	logicalBackends["generic"] = LeasedPassthroughBackendFactory
 	for backendName, backendFactory := range testLogicalBackends {
 		logicalBackends[backendName] = backendFactory
@@ -144,7 +157,7 @@ func testCoreConfig(t testing.TB, physicalBackend physical.Backend, logger log.L
 		Physical:           physicalBackend,
 		AuditBackends:      noopAudits,
 		LogicalBackends:    logicalBackends,
-		CredentialBackends: noopBackends,
+		CredentialBackends: credentialBackends,
 		DisableMlock:       true,
 		Logger:             logger,
 	}
@@ -266,6 +279,60 @@ func testTokenStore(t testing.TB, c *Core) *TokenStore {
 	return ts
 }
 
+// TestIdentityStoreWithGithubAuth returns an instance of identity store which
+// is mounted by default. This function also enables the github auth backend to
+// assist with testing identities and entities what require an valid mount ID
+// of an auth backend.
+func TestIdentityStoreWithGithubAuth(t testing.TB) *identityStore {
+	// Add github credential factory to core config
+	err := AddTestCredentialBackend("github", credGithub.Factory)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	c, _, _ := TestCoreUnsealed(t)
+
+	meGH := &MountEntry{
+		Table:       credentialTableType,
+		Path:        "github/",
+		Type:        "github",
+		Description: "github auth",
+	}
+
+	// Mount UUID for github auth
+	meGHUUID, err := uuid.GenerateUUID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	meGH.UUID = meGHUUID
+
+	// Storage view for github auth
+	ghView := NewBarrierView(c.barrier, credentialBarrierPrefix+meGH.UUID+"/")
+
+	// Sysview for github auth
+	ghSysview := c.mountEntrySysView(meGH)
+
+	// Create new github auth credential backend
+	ghAuth, err := c.newCredentialBackend(meGH.Type, ghSysview, ghView, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Mount github auth
+	err = c.router.Mount(ghAuth, "auth/github", meGH, ghView)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Identity store will be mounted by now, just fetch it from router
+	identitystore := c.router.MatchingBackend("identity/")
+	if identitystore == nil {
+		t.Fatalf("failed to fetch identity store from router")
+	}
+
+	return identitystore.(*identityStore)
+}
+
 // TestCoreWithTokenStore returns an in-memory core that has a token store
 // mounted, so that logical token functions can be used
 func TestCoreWithTokenStore(t testing.TB) (*Core, *TokenStore, [][]byte, string) {
@@ -333,6 +400,7 @@ func TestAddTestPlugin(t testing.TB, c *Core, name, testFunc string) {
 }
 
 var testLogicalBackends = map[string]logical.Factory{}
+var testCredentialBackends = map[string]logical.Factory{}
 
 // Starts the test server which responds to SSH authentication.
 // Used to test the SSH secret backend.
@@ -423,6 +491,19 @@ func executeServerCommand(ch ssh.Channel, req *ssh.Request) {
 		}
 		ch.Close()
 	}()
+}
+
+// This adds a credential backend for the test core. This needs to be
+// invoked before the test core is created.
+func AddTestCredentialBackend(name string, factory logical.Factory) error {
+	if name == "" {
+		return fmt.Errorf("missing backend name")
+	}
+	if factory == nil {
+		return fmt.Errorf("missing backend factory function")
+	}
+	testCredentialBackends[name] = factory
+	return nil
 }
 
 // This adds a logical backend for the test core. This needs to be

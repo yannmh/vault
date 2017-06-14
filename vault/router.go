@@ -43,6 +43,33 @@ type routeEntry struct {
 	loginPaths  *radix.Tree
 }
 
+type validateMountResponse struct {
+	MountID   string `json:"mount_id" structs:"mount_id" mapstructure:"mount_id"`
+	MountType string `json:"mount_type" structs:"mount_type" mapstructure:"mount_type"`
+}
+
+// validateMount returns the mount type if the given path refers to a valid
+// mount
+func (r *Router) validateMount(path string) *validateMountResponse {
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+
+	if !strings.HasPrefix(path, "auth/") {
+		path = "auth/" + path
+	}
+
+	mountEntry := r.MatchingMountEntry(path)
+	if mountEntry == nil {
+		return nil
+	}
+
+	return &validateMountResponse{
+		MountType: mountEntry.Type,
+		MountID:   mountEntry.UUID,
+	}
+}
+
 // SaltID is used to apply a salt and hash to an ID to make sure its not reversible
 func (re *routeEntry) SaltID(id string) string {
 	return salt.SaltID(re.mountEntry.UUID, id, salt.SHA1Hash)
@@ -316,6 +343,10 @@ func (r *Router) routeCommon(req *logical.Request, existenceCheck bool) (*logica
 		// This is only set in one place, after routing, so should never be set
 		// by a backend
 		req.SetLastRemoteWAL(0)
+
+		// This will be used for attaching the mount ID for the identities
+		// returned by the authentication backends
+		req.MountID = re.mountEntry.UUID
 	}()
 
 	// Invoke the backend

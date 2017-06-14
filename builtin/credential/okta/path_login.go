@@ -68,6 +68,9 @@ func (b *backend) pathLogin(
 		LeaseOptions: logical.LeaseOptions{
 			Renewable: true,
 		},
+		Identity: &logical.Identity{
+			Name: username,
+		},
 	}
 	return resp, nil
 }

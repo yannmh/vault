@@ -87,6 +87,10 @@ type Request struct {
 	// aliases, generating different defaults depending on the alias)
 	MountType string `json:"mount_type" structs:"mount_type" mapstructure:"mount_type"`
 
+	// MountID is provided so that identities returned by the authentication
+	// backends can be tied to the mount it belongs to.
+	MountID string `json:"mount_id" structs:"mount_id" mapstructure:"mount_id"`
+
 	// WrapInfo contains requested response wrapping parameters
 	WrapInfo *RequestWrapInfo `json:"wrap_info" structs:"wrap_info" mapstructure:"wrap_info"`
 

@@ -257,6 +257,12 @@ type Core struct {
 	// token store is used to manage authentication tokens
 	tokenStore *TokenStore
 
+	// identityStore is used to manage client entities
+	identityStore *identityStore
+
+	// entitiesLock is used to ensure thread safety for restoring entities
+	entitiesLock sync.Mutex
+
 	// metricsCh is used to stop the metrics streaming
 	metricsCh chan struct{}
 
@@ -511,6 +517,11 @@ func NewCore(conf *CoreConfig) (*Core, error) {
 	logicalBackends["system"] = func(config *logical.BackendConfig) (logical.Backend, error) {
 		return NewSystemBackend(c, config)
 	}
+
+	logicalBackends["identity"] = func(config *logical.BackendConfig) (logical.Backend, error) {
+		return NewIdentityStore(c, config)
+	}
+
 	c.logicalBackends = logicalBackends
 
 	credentialBackends := make(map[string]logical.Factory)
@@ -606,8 +617,41 @@ func (c *Core) fetchACLandTokenEntry(req *logical.Request) (*ACL, *TokenEntry, e
 		return nil, nil, logical.ErrPermissionDenied
 	}
 
+	aclPolicies := te.Policies
+
+	// Append the policies of the entity to those on the tokens and create ACL
+	// off of the combined list.
+	if te.EntityID != "" {
+		// Fetch entity for the entity ID in the token entry
+		entity, err := c.identityStore.memDBEntityByID(te.EntityID)
+		if err != nil {
+			c.logger.Error("core: failed to lookup entity using its ID", "error", err)
+			return nil, nil, ErrInternalError
+		}
+
+		if entity == nil {
+			// If there was no corresponding entity object found, it is
+			// possible that the entity got merged into another entity. Try
+			// finding entity based on the merged entity index.
+			entity, err = c.identityStore.memDBEntityByMergedEntityID(te.EntityID)
+			if err != nil {
+				c.logger.Error("core: failed to lookup entity in merged entity ID index", "error", err)
+				return nil, nil, ErrInternalError
+			}
+
+			// If the entity to which the token belongs to is removed, the
+			// token is no more valid.
+			if entity == nil {
+				return nil, nil, fmt.Errorf("entity to which the token is tied to is no more valid")
+			}
+		}
+
+		// Attach the policies on the entity to the policies tied to the token
+		aclPolicies = append(aclPolicies, entity.Policies...)
+	}
+
 	// Construct the corresponding ACL object
-	acl, err := c.policyStore.ACL(te.Policies...)
+	acl, err := c.policyStore.ACL(aclPolicies...)
 	if err != nil {
 		c.logger.Error("core: failed to construct ACL", "error", err)
 		return nil, nil, ErrInternalError
@@ -670,6 +714,7 @@ func (c *Core) checkToken(req *logical.Request) (*logical.Auth, *TokenEntry, err
 		Policies:    te.Policies,
 		Metadata:    te.Meta,
 		DisplayName: te.DisplayName,
+		EntityID:    te.EntityID,
 	}
 
 	// Check the standard non-root ACLs. Return the token entry if it's not
@@ -1136,6 +1181,7 @@ func (c *Core) StepDown(req *logical.Request) (retErr error) {
 		Policies:    te.Policies,
 		Metadata:    te.Meta,
 		DisplayName: te.DisplayName,
+		EntityID:    te.EntityID,
 	}
 
 	if err := c.auditBroker.LogRequest(auth, req, c.auditedHeaders, nil); err != nil {
@@ -1304,6 +1350,9 @@ func (c *Core) postUnseal() (retErr error) {
 		return err
 	}
 	if err := c.setupAudits(); err != nil {
+		return err
+	}
+	if err := c.loadEntities(); err != nil {
 		return err
 	}
 	if err := c.setupAuditedHeadersConfig(); err != nil {
