@@ -1,8 +1,6 @@
 package vault
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"strings"
 	"sync"
@@ -12,7 +10,6 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/locksutil"
-	"github.com/hashicorp/vault/helper/storageutil"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -69,7 +66,7 @@ func (i *identityStore) loadEntity(entity *entityStorageEntry, previousEntity *e
 		}
 
 		// Persist the previous entity object
-		err = i.storageSetEntity(previousEntity)
+		err = i.storagePacker.PutItem(previousEntity)
 		if err != nil {
 			return err
 		}
@@ -82,7 +79,7 @@ func (i *identityStore) loadEntity(entity *entityStorageEntry, previousEntity *e
 	}
 
 	// Persist the entity object
-	err = i.storageSetEntity(entity)
+	err = i.storagePacker.PutItem(entity)
 	if err != nil {
 		return err
 	}
@@ -108,7 +105,7 @@ func (i *identityStore) loadEntities() error {
 
 	// Buffer these channels to prevent deadlocks
 	errs := make(chan error, len(existing))
-	result := make(chan *storageutil.StorageBucketEntry, len(existing))
+	result := make(chan *storageBucketEntry, len(existing))
 
 	// Use a wait group
 	wg := &sync.WaitGroup{}
@@ -181,15 +178,8 @@ func (i *identityStore) loadEntities() error {
 				continue
 			}
 
-			for _, storageEntry := range bucketEntry.Items {
-				// Value in entity storage entry will not be JSON encoded.
-				// Instead it will be a gob blob.
-				buffer := bytes.NewBuffer(storageEntry.Value)
-				dec := gob.NewDecoder(buffer)
-
-				entity := &entityStorageEntry{}
-				dec.Decode(entity)
-
+			for _, entity := range bucketEntry.Items {
+				fmt.Printf("loading entity: %#v\n", entity)
 				// Only update MemDB and don't hit the storage again
 				err = i.upsertEntity(entity, nil, false)
 				if err != nil {
@@ -251,7 +241,7 @@ func (i *identityStore) upsertEntity(entity *entityStorageEntry, previousEntity 
 		}
 
 		// Persist the previous entity object
-		err = i.storageSetEntity(previousEntity)
+		err = i.storagePacker.PutItem(previousEntity)
 		if err != nil {
 			return err
 		}
@@ -265,7 +255,7 @@ func (i *identityStore) upsertEntity(entity *entityStorageEntry, previousEntity 
 
 	if persist {
 		// Persist the entity object
-		err = i.storageSetEntity(entity)
+		err = i.storagePacker.PutItem(entity)
 		if err != nil {
 			return err
 		}
@@ -331,7 +321,7 @@ func (i *identityStore) deleteEntity(entityID string) error {
 	}
 
 	// Delete the entity from storage
-	err = i.storageDeleteEntity(entity)
+	err = i.storagePacker.DeleteItem(entity.ID)
 	if err != nil {
 		return err
 	}
@@ -433,7 +423,7 @@ func (i *identityStore) deleteIdentity(identityID string) error {
 	}
 
 	// Persist the entity object
-	err = i.storageSetEntity(entity)
+	err = i.storagePacker.PutItem(entity)
 	if err != nil {
 		return err
 	}
@@ -733,55 +723,6 @@ func (i *identityStore) memDBUpsertEntity(entity *entityStorageEntry) error {
 	txn.Commit()
 
 	return nil
-}
-
-func (i *identityStore) storageSetEntity(entity *entityStorageEntry) error {
-	if entity == nil {
-		return fmt.Errorf("entity is nil")
-	}
-
-	if entity.ID == "" {
-		return fmt.Errorf("missing entity id")
-	}
-
-	entryIndex := entityPrefix + string(entity.ID)
-
-	// JSON encoding can turn out to be slower and in this case, since the
-	// values are not returned over the API, we just need to convert it into
-	// bytes to serialize it. Hence using `gob` to convert struct to []byte.
-	var buffer bytes.Buffer
-	enc := gob.NewEncoder(&buffer)
-
-	err := enc.Encode(*entity)
-	if err != nil {
-		return fmt.Errorf("failed to serialize entity: %v", err)
-	}
-
-	entry := &logical.StorageEntry{
-		Key:   entryIndex,
-		Value: buffer.Bytes(),
-	}
-
-	err = i.storagePacker.PutItem(entry)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (i *identityStore) storageDeleteEntity(entity *entityStorageEntry) error {
-	if entity == nil {
-		return nil
-	}
-
-	if entity.ID == "" {
-		return fmt.Errorf("missing entity id")
-	}
-
-	entryIndex := entityPrefix + string(entity.ID)
-
-	return i.view.Delete(entryIndex)
 }
 
 func (i *identityStore) memDBEntityByIDInTxn(txn *memdb.Txn, entityID string) (*entityStorageEntry, error) {

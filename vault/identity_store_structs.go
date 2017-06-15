@@ -6,7 +6,6 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/vault/helper/locksutil"
-	"github.com/hashicorp/vault/helper/storageutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 	log "github.com/mgutz/logxi/v1"
@@ -64,7 +63,7 @@ type identityStore struct {
 	logger log.Logger
 
 	// StoragePacker is used to pack multiple storage entries into 256 buckets
-	storagePacker *storageutil.StoragePacker
+	storagePacker *storagePacker
 }
 
 // entityStorageEntry represents an entity that gets persisted and indexed.

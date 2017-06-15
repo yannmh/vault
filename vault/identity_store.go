@@ -5,7 +5,6 @@ import (
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/vault/helper/locksutil"
-	"github.com/hashicorp/vault/helper/storageutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -28,11 +27,11 @@ func NewIdentityStore(core *Core, config *logical.BackendConfig) (*identityStore
 		validateMountPathFunc: core.router.validateMount,
 	}
 
-	packerConfig := &storageutil.StoragePackerConfig{
+	packerConfig := &storagePackerConfig{
 		ViewPrefix: "entities/",
 	}
 
-	iStore.storagePacker, err = storageutil.NewStoragePacker(iStore.view, packerConfig)
+	iStore.storagePacker, err = NewStoragePacker(iStore.view, packerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage buckets for identity store: %v", err)
 	}

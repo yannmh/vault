@@ -219,14 +219,14 @@ func (i *identityStore) pathEntityMergeID(req *logical.Request, d *framework.Fie
 		}
 
 		// Delete the entity which we are merging from in storage
-		err = i.storageDeleteEntity(fromEntity)
+		err = i.storagePacker.DeleteItem(fromEntity.ID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Persist the entity which we are merging to
-	err = i.storageSetEntity(toEntity)
+	err = i.storagePacker.PutItem(toEntity)
 	if err != nil {
 		return nil, err
 	}

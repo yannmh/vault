@@ -1,4 +1,4 @@
-package storageutil
+package vault
 
 import (
 	"crypto/md5"
@@ -17,43 +17,43 @@ const (
 	packerConfigLocation = "packerconfig"
 )
 
-// StoragePacker packs the logical storage entries into a specific number of
+// storagePacker packs the logical storage entries into a specific number of
 // buckets by hashing its key and indexing based on the hash value. Currently
 // this supports only 256 bucket entries and hence relies on the first byte of
 // the hash value for indexing.
-type StoragePacker struct {
-	config *StoragePackerConfig
+type storagePacker struct {
+	config *storagePackerConfig
 	view   logical.Storage
 }
 
-// Config specifies the properties of the packer
-type StoragePackerConfig struct {
+// storagePackerConfig specifies the properties of the packer
+type storagePackerConfig struct {
 	Location   string    `json:"location" structs:"location" mapstructure:"location"`
 	HashFunc   hash.Hash `json:"hash_func" structs:"hash_func" mapstructure:"hash_func"`
 	ViewPrefix string    `json:"view_prefix" structs:"view_prefix" mapstructure:"view_prefix"`
 	NumBuckets int       `json:"num_buckets" structs:"num_buckets" mapstructure:"num_buckets"`
 }
 
-// ConfigStorageEntry contains the properties of packer that needs to survive
+// configStorageEntry contains the properties of packer that needs to survive
 // reboot cycles
-type ConfigStorageEntry struct {
+type configStorageEntry struct {
 	NumBuckets int    `json:"num_buckets" structs:"num_buckets" mapstructure:"num_buckets"`
 	ViewPrefix string `json:"view_prefix" structs:"view_prefix" mapstructure:"view_prefix"`
 }
 
-// StorageBucketEntry represents a bucket which holds many storage entries
-type StorageBucketEntry struct {
-	Key   string                 `json:"key" structs:"key" mapstructure:"key"`
-	Items []logical.StorageEntry `json:"items" structs:"items" mapstructure:"items"`
+// storageBucketEntry represents a bucket which holds many storage entries
+type storageBucketEntry struct {
+	Key   string                `json:"key" structs:"key" mapstructure:"key"`
+	Items []*entityStorageEntry `json:"items" structs:"items" mapstructure:"items"`
 }
 
 // View returns the storage view configured to be used by the packer
-func (s *StoragePacker) View() logical.Storage {
+func (s *storagePacker) View() logical.Storage {
 	return s.view
 }
 
 // Get returns a bucket entry for a given bucket entry key
-func (s *StoragePacker) Get(bucketEntryKey string) (*StorageBucketEntry, error) {
+func (s *storagePacker) Get(bucketEntryKey string) (*storageBucketEntry, error) {
 	if bucketEntryKey == "" {
 		return nil, fmt.Errorf("missing bucket entry key")
 	}
@@ -82,7 +82,7 @@ func (s *StoragePacker) Get(bucketEntryKey string) (*StorageBucketEntry, error) 
 	}
 
 	// JSON decode it
-	bucketEntry := &StorageBucketEntry{}
+	bucketEntry := &storageBucketEntry{}
 	err = jsonutil.DecodeJSON(decompressedBucketEntryBytes, bucketEntry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode packed storage entry: %v", err)
@@ -93,7 +93,7 @@ func (s *StoragePacker) Get(bucketEntryKey string) (*StorageBucketEntry, error) 
 
 // upsert either inserts a new entry to the bucket or updates an existing one
 // if an entry with a matching key is already present.
-func (s *StorageBucketEntry) upsert(entry *logical.StorageEntry) error {
+func (s *storageBucketEntry) upsert(entry *entityStorageEntry) error {
 	if s == nil {
 		return fmt.Errorf("nil storage bucket entry")
 	}
@@ -102,11 +102,15 @@ func (s *StorageBucketEntry) upsert(entry *logical.StorageEntry) error {
 		return fmt.Errorf("nil entry")
 	}
 
+	if entry.ID == "" {
+		return fmt.Errorf("missing entity ID")
+	}
+
 	// Look for an entry with matching key and don't modify the collection
 	// while iterating
 	foundIdx := -1
 	for itemIdx, item := range s.Items {
-		if item.Key == entry.Key {
+		if item.ID == entry.ID {
 			foundIdx = itemIdx
 			break
 		}
@@ -114,35 +118,35 @@ func (s *StorageBucketEntry) upsert(entry *logical.StorageEntry) error {
 
 	// If there is no match, append the entry, otherwise update it
 	if foundIdx == -1 {
-		s.Items = append(s.Items, *entry)
+		s.Items = append(s.Items, entry)
 	} else {
-		s.Items[foundIdx] = *entry
+		s.Items[foundIdx] = entry
 	}
 
 	return nil
 }
 
 // BucketIndex returns the bucket key index for a given storage entry key
-func (s *StoragePacker) BucketIndex(key string) uint8 {
+func (s *storagePacker) BucketIndex(key string) uint8 {
 	s.config.HashFunc.Reset()
 	s.config.HashFunc.Write([]byte(key))
 	return uint8(s.config.HashFunc.Sum(nil)[0])
 }
 
-// BucketKey returns the bucket key for a given storage entry key
-func (s *StoragePacker) BucketKey(key string) string {
-	return strconv.Itoa(int(s.BucketIndex(key)))
+// BucketKey returns the bucket key for a given entity ID
+func (s *storagePacker) BucketKey(entityID string) string {
+	return strconv.Itoa(int(s.BucketIndex(entityID)))
 }
 
 // DeleteItem removes the storage entry which the given key refers to from its
 // corresponding bucket.
-func (s *StoragePacker) DeleteItem(key string) error {
-	if key == "" {
-		return fmt.Errorf("empty key")
+func (s *storagePacker) DeleteItem(entityID string) error {
+	if entityID == "" {
+		return fmt.Errorf("empty entity ID")
 	}
 
 	// Get the bucket key
-	bucketKey := s.BucketKey(key)
+	bucketKey := s.BucketKey(entityID)
 
 	// Prepend the view prefix
 	bucketEntryKey := s.config.ViewPrefix + bucketKey
@@ -163,7 +167,7 @@ func (s *StoragePacker) DeleteItem(key string) error {
 	}
 
 	// JSON decode it
-	bucketEntry := &StorageBucketEntry{}
+	bucketEntry := &storageBucketEntry{}
 	err = jsonutil.DecodeJSON(decompressedBucketEntryBytes, bucketEntry)
 	if err != nil {
 		return fmt.Errorf("failed to decode packed storage entry: %v", err)
@@ -172,7 +176,7 @@ func (s *StoragePacker) DeleteItem(key string) error {
 	// Look for a matching storage entry
 	foundIdx := -1
 	for itemIdx, item := range bucketEntry.Items {
-		if item.Key == key {
+		if item.ID == entityID {
 			foundIdx = itemIdx
 		}
 	}
@@ -193,7 +197,7 @@ func (s *StoragePacker) DeleteItem(key string) error {
 }
 
 // Put stores a packed bucket entry
-func (s *StoragePacker) Put(bucketEntry *StorageBucketEntry) error {
+func (s *storagePacker) Put(bucketEntry *storageBucketEntry) error {
 	if bucketEntry == nil {
 		return fmt.Errorf("nil bucket entry")
 	}
@@ -231,12 +235,12 @@ func (s *StoragePacker) Put(bucketEntry *StorageBucketEntry) error {
 
 // GetItem fetches the storage entry for a given key from its corresponding
 // bucket.
-func (s *StoragePacker) GetItem(key string) (*logical.StorageEntry, error) {
-	if key == "" {
-		return nil, fmt.Errorf("empty key")
+func (s *storagePacker) GetItem(entityID string) (*entityStorageEntry, error) {
+	if entityID == "" {
+		return nil, fmt.Errorf("empty entity ID")
 	}
 
-	bucketKey := s.BucketKey(key)
+	bucketKey := s.BucketKey(entityID)
 	bucketEntryKey := s.config.ViewPrefix + bucketKey
 
 	// Fetch the bucket entry
@@ -247,8 +251,8 @@ func (s *StoragePacker) GetItem(key string) (*logical.StorageEntry, error) {
 
 	// Look for a matching storage entry in the bucket items
 	for _, item := range bucketEntry.Items {
-		if item.Key == key {
-			return &item, nil
+		if item.ID == entityID {
+			return item, nil
 		}
 	}
 
@@ -256,22 +260,22 @@ func (s *StoragePacker) GetItem(key string) (*logical.StorageEntry, error) {
 }
 
 // PutItem stores a storage entry in its corresponding bucket
-func (s *StoragePacker) PutItem(entry *logical.StorageEntry) error {
-	if entry == nil {
-		return fmt.Errorf("nil entry")
+func (s *storagePacker) PutItem(entity *entityStorageEntry) error {
+	if entity == nil {
+		return fmt.Errorf("nil entity")
 	}
 
-	if entry.Key == "" {
-		return fmt.Errorf("missing key in entry")
+	if entity.ID == "" {
+		return fmt.Errorf("missing ID in entity")
 	}
 
 	var err error
 
-	bucketKey := s.BucketKey(entry.Key)
+	bucketKey := s.BucketKey(entity.ID)
 
 	bucketEntryKey := s.config.ViewPrefix + bucketKey
 
-	bucketEntry := &StorageBucketEntry{
+	bucketEntry := &storageBucketEntry{
 		Key: bucketEntryKey,
 	}
 
@@ -284,8 +288,8 @@ func (s *StoragePacker) PutItem(entry *logical.StorageEntry) error {
 	if storageEntry == nil {
 		// If the bucket entry does not exist, this will be only storage entry
 		// in a bucket that is going to be persisted.
-		bucketEntry.Items = []logical.StorageEntry{
-			*entry,
+		bucketEntry.Items = []*entityStorageEntry{
+			entity,
 		}
 	} else {
 		// If there already exists a bucket, read it and upsert the new entry
@@ -300,7 +304,7 @@ func (s *StoragePacker) PutItem(entry *logical.StorageEntry) error {
 			return fmt.Errorf("failed to decode packed storage entry: %v", err)
 		}
 
-		err = bucketEntry.upsert(entry)
+		err = bucketEntry.upsert(entity)
 		if err != nil {
 			return fmt.Errorf("failed to update entry in packed storage entry: %v", err)
 		}
@@ -315,13 +319,13 @@ func (s *StoragePacker) PutItem(entry *logical.StorageEntry) error {
 // persisted across reboots. If a persisted configuration is found for a given
 // location, certain properties which are immutable will be enforced and
 // attempts to update it will result in an error.
-func NewStoragePacker(view logical.Storage, config *StoragePackerConfig) (*StoragePacker, error) {
+func NewStoragePacker(view logical.Storage, config *storagePackerConfig) (*storagePacker, error) {
 	if view == nil {
 		return nil, fmt.Errorf("nil view")
 	}
 
 	if config == nil {
-		config = &StoragePackerConfig{}
+		config = &storagePackerConfig{}
 	}
 
 	if config.Location == "" {
@@ -349,7 +353,7 @@ func NewStoragePacker(view logical.Storage, config *StoragePackerConfig) (*Stora
 	}
 
 	// Create a new packer object for the given config and view
-	packer := &StoragePacker{
+	packer := &storagePacker{
 		config: config,
 		view:   view,
 	}
@@ -361,7 +365,7 @@ func NewStoragePacker(view logical.Storage, config *StoragePackerConfig) (*Stora
 		return nil, fmt.Errorf("failed to read storage packer properties: %v", err)
 	}
 
-	var configEntry ConfigStorageEntry
+	var configEntry configStorageEntry
 	// If yes, restore the configuration properties from it
 	if entry != nil {
 		err = entry.DecodeJSON(&configEntry)
@@ -387,7 +391,7 @@ func NewStoragePacker(view logical.Storage, config *StoragePackerConfig) (*Stora
 		packer.config.NumBuckets = bucketCount
 
 		// Prepare the values that needs to get persisted
-		configStorageEntry := &ConfigStorageEntry{
+		configStorageEntry := &configStorageEntry{
 			NumBuckets: packer.config.NumBuckets,
 			ViewPrefix: packer.config.ViewPrefix,
 		}
