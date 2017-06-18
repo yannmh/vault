@@ -143,6 +143,7 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 		"lease_duration": json.Number("0"),
 		"data": map[string]interface{}{
 			"meta":             nil,
+			"entity_id":        "",
 			"num_uses":         json.Number("0"),
 			"path":             "auth/token/root",
 			"policies":         []interface{}{"root"},

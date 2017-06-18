@@ -56,6 +56,16 @@ func TestSysMounts(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"secret/": map[string]interface{}{
 			"description": "generic secret storage",
@@ -87,12 +97,22 @@ func TestSysMounts(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("bad: expected: %#v\nactual: %#v\n", expected, actual)
 	}
 }
 
@@ -159,6 +179,16 @@ func TestSysMount(t *testing.T) {
 				},
 				"local": true,
 			},
+			"identity/": map[string]interface{}{
+				"description": "identity store",
+				"type":        "identity",
+				"config": map[string]interface{}{
+					"default_lease_ttl": json.Number("0"),
+					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
+				},
+				"local": false,
+			},
 		},
 		"foo/": map[string]interface{}{
 			"description": "foo",
@@ -200,12 +230,22 @@ func TestSysMount(t *testing.T) {
 			},
 			"local": true,
 		},
+		"identity/": map[string]interface{}{
+			"description": "identity store",
+			"type":        "identity",
+			"config": map[string]interface{}{
+				"default_lease_ttl": json.Number("0"),
+				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
+			},
+			"local": false,
+		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 	expected["request_id"] = actual["request_id"]
 	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+		t.Fatalf("bad: expected: %#v\nactual: %#v\n", expected, actual)
 	}
 }
 
