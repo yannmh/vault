@@ -402,7 +402,7 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 
 			// If not, create one
 			if entity == nil {
-				entity, err = c.identityStore.CreateImplicitEntity(auth.Identity)
+				entity, err = c.identityStore.CreateEntity(auth.Identity)
 				if err != nil {
 					return nil, nil, fmt.Errorf("failed to create an entity for the authenticated identity: %v", err)
 				}

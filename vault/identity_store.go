@@ -74,21 +74,18 @@ func (i *identityStore) EntityByIdentityFactors(mountID, identityName string) (*
 	return i.memDBEntityByIdentityID(identity.ID)
 }
 
-// CreateImplicitEntity creates a new implicit entity. This is used by core to
+// CreateEntity creates a new entity. This is used by core to
 // associate each login attempt by an identity to a unified entity in Vault.
 // This method should be called *after* ensuring that the identity is not
 // already tied to an entity.
-func (i *identityStore) CreateImplicitEntity(identity *logical.Identity) (*entityStorageEntry, error) {
+func (i *identityStore) CreateEntity(identity *logical.Identity) (*entityStorageEntry, error) {
 	var err error
 
 	if identity == nil {
 		return nil, fmt.Errorf("identity is nil")
 	}
 
-	entity := &entityStorageEntry{
-		// Entity is not being created via the API
-		Implicit: true,
-	}
+	entity := &entityStorageEntry{}
 
 	err = sanitizeEntity(entity)
 	if err != nil {
@@ -101,8 +98,6 @@ func (i *identityStore) CreateImplicitEntity(identity *logical.Identity) (*entit
 		Name:      identity.Name,
 		MountType: identity.MountType,
 		MountID:   identity.MountID,
-		// Identity is not being created via the API
-		Implicit: true,
 	}
 
 	err = i.sanitizeIdentity(newIdentity)

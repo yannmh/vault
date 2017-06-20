@@ -107,10 +107,6 @@ type entityStorageEntry struct {
 	// this is the only trackable trail of its earlier presence.
 	MergedEntities []string `json:"merged_entities" structs:"merged_entities" mapstructure:"merged_entities"`
 
-	// Implicit helps to distinguish between entities that Vault created
-	// automatically vs entities that were registered explicitly.
-	Implicit bool `json:"implicit" structs:"implicit" mapstructure:"implicit"`
-
 	// Policies the entity is entitled to
 	Policies []string `json:"policies" structs:"policies" mapstructure:"policies"`
 }
@@ -168,8 +164,4 @@ type identityIndexEntry struct {
 	// MergedFrom is the identifier of the entity from which this identity is
 	// transfered over to the entity to which it currently belongs to.
 	MergedFrom string `json:"merged_from" structs:"merged_from" mapstructure:"merged_from"`
-
-	// Implicit helps to distinguish between identities that Vault created
-	// automatically vs identities that were registered explicitly.
-	Implicit bool `json:"implicit" structs:"implicit" mapstructure:"implicit"`
 }
