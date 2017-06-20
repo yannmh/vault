@@ -639,7 +639,7 @@ func (c *Core) fetchACLandTokenEntry(req *logical.Request) (*ACL, *TokenEntry, e
 			// If the entity to which the token belongs to is removed, the
 			// token is no more valid.
 			if entity == nil {
-				return nil, nil, fmt.Errorf("entity to which the token is tied to is no more valid")
+				return nil, nil, fmt.Errorf("entity referenced by token is invalid")
 			}
 		}
 

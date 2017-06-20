@@ -84,13 +84,13 @@ type entityStorageEntry struct {
 	// field.
 	Name string `json:"name" structs:"name" mapstructure:"name"`
 
-	// Metadata represents the explicit metadata which is set by the clients.
-	// This is useful to tie any information pertaining to the identity. This
-	// is a non-unique field of entity, meaning multiple entities can have the
-	// same metadata set. Entities will be indexed based on this explicit
-	// metadata. This enables virtual groupings of entities based on its
-	// metadata.
-	Metadata map[string]string `json:"metadata" structs:"metadata" mapstructure:"metadata"`
+	// ExternalMetadata represents the explicit metadata which is set by the
+	// clients.  This is useful to tie any information pertaining to the
+	// identity. This is a non-unique field of entity, meaning multiple
+	// entities can have the same metadata set. Entities will be indexed based
+	// on this explicit metadata. This enables virtual groupings of entities
+	// based on its metadata.
+	ExternalMetadata map[string]string `json:"external_metadata" structs:"external_metadata" mapstructure:"external_metadata"`
 
 	// CreationTime is the time at which this entity is first created.
 	CreationTime time.Time `json:"creation_time" structs:"creation_time" mapstructure:"creation_time"`
@@ -111,11 +111,6 @@ type entityStorageEntry struct {
 	// automatically vs entities that were registered explicitly.
 	Implicit bool `json:"implicit" structs:"implicit" mapstructure:"implicit"`
 
-	// ImplicitMetadata is the set of information Vault internally assigns to
-	// the entities. This field might serve as a basis for implicit groups of
-	// entities which is planned for the coming releases.
-	ImplicitMetadata map[string]string `json:"implicit_metadata" structs:"implicit_metadata" mapstructure:"implicit_metadata"`
-
 	// Policies the entity is entitled to
 	Policies []string `json:"policies" structs:"policies" mapstructure:"policies"`
 }
@@ -124,9 +119,9 @@ type entityStorageEntry struct {
 // register or modify any identity. This is different than the structure Vault
 // populates internally for indexing.
 type identityInput struct {
-	Metadata  map[string]string `json:"metadata" structs:"metadata" mapstructure:"metadata"`
-	MountPath string            `json:"mount_path" structs:"mount_path" mapstructure:"mount_path"`
-	Name      string            `json:"name" structs:"name" mapstructure:"name"`
+	ExternalMetadata map[string]string `json:"external_metadata" structs:"external_metadata" mapstructure:"external_metadata"`
+	MountPath        string            `json:"mount_path" structs:"mount_path" mapstructure:"mount_path"`
+	Name             string            `json:"name" structs:"name" mapstructure:"name"`
 }
 
 // identityIndexEntry represents the identity that gets stored inside of the
@@ -145,10 +140,10 @@ type identityIndexEntry struct {
 	// the API.
 	MountID string `json:"mount_id" structs:"-" mapstructure:"mount_id"`
 
-	// Metadata is the explicit metadata that clients set against an entity
-	// which enables virtual grouping of identities. Identities will be indexed
-	// against their metadata.
-	Metadata map[string]string `json:"metadata" structs:"metadata" mapstructure:"metadata"`
+	// ExternalMetadata is the explicit metadata that clients set against an
+	// entity which enables virtual grouping of identities. Identities will be
+	// indexed against their metadata.
+	ExternalMetadata map[string]string `json:"external_metadata" structs:"external_metadata" mapstructure:"external_metadata"`
 
 	// Name is the identifier of this identity in its authentication source.
 	// This does not uniquely identify an identity in Vault. This in
@@ -177,8 +172,4 @@ type identityIndexEntry struct {
 	// Implicit helps to distinguish between identities that Vault created
 	// automatically vs identities that were registered explicitly.
 	Implicit bool `json:"implicit" structs:"implicit" mapstructure:"implicit"`
-
-	// ImplicitMetadata is the set of information Vault internally assigns to
-	// the identities.
-	ImplicitMetadata map[string]string `json:"implicit_metadata" structs:"implicit_metadata" mapstructure:"implicit_metadata"`
 }

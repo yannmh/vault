@@ -577,7 +577,7 @@ func (i *identityStore) memDBIdentityByFactors(mountID, identityName string) (*i
 	return identity, nil
 }
 
-func (i *identityStore) memDBIdentitiesByMetadata(filters map[string]string) ([]*identityIndexEntry, error) {
+func (i *identityStore) memDBIdentitiesByExternalMetadata(filters map[string]string) ([]*identityIndexEntry, error) {
 	if filters == nil {
 		return nil, fmt.Errorf("map filter is nil")
 	}
@@ -591,7 +591,7 @@ func (i *identityStore) memDBIdentitiesByMetadata(filters map[string]string) ([]
 		break
 	}
 
-	identitiesIter, err := tx.Get("identities", "metadata", args...)
+	identitiesIter, err := tx.Get("identities", "external_metadata", args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to lookup identities using metadata: %v", err)
 	}
@@ -599,7 +599,7 @@ func (i *identityStore) memDBIdentitiesByMetadata(filters map[string]string) ([]
 	var identities []*identityIndexEntry
 	for identity := identitiesIter.Next(); identity != nil; identity = identitiesIter.Next() {
 		i := identity.(*identityIndexEntry)
-		if len(filters) <= 1 || satisfiesMetadataFilters(i.Metadata, filters) {
+		if len(filters) <= 1 || satisfiesMetadataFilters(i.ExternalMetadata, filters) {
 			identities = append(identities, i)
 		}
 	}
@@ -794,7 +794,7 @@ func (i *identityStore) memDBEntityByName(entityName string) (*entityStorageEntr
 	return i.memDBEntityByNameInTxn(txn, entityName)
 }
 
-func (i *identityStore) memDBEntitiesByMetadata(filters map[string]string) ([]*entityStorageEntry, error) {
+func (i *identityStore) memDBEntitiesByExternalMetadata(filters map[string]string) ([]*entityStorageEntry, error) {
 	if filters == nil {
 		return nil, fmt.Errorf("map filter is nil")
 	}
@@ -808,7 +808,7 @@ func (i *identityStore) memDBEntitiesByMetadata(filters map[string]string) ([]*e
 		break
 	}
 
-	entitiesIter, err := tx.Get("entities", "metadata", args...)
+	entitiesIter, err := tx.Get("entities", "external_metadata", args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to lookup entities using metadata: %v", err)
 	}
@@ -816,7 +816,7 @@ func (i *identityStore) memDBEntitiesByMetadata(filters map[string]string) ([]*e
 	var entities []*entityStorageEntry
 	for entity := entitiesIter.Next(); entity != nil; entity = entitiesIter.Next() {
 		i := entity.(*entityStorageEntry)
-		if len(filters) <= 1 || satisfiesMetadataFilters(i.Metadata, filters) {
+		if len(filters) <= 1 || satisfiesMetadataFilters(i.ExternalMetadata, filters) {
 			entities = append(entities, i)
 		}
 	}
@@ -978,7 +978,7 @@ func (i *identityStore) sanitizeIdentity(identity *identityIndexEntry) error {
 	}
 
 	// Identity metadata should always be map[string]string
-	err = validateMetadata(identity.Metadata)
+	err = validateMetadata(identity.ExternalMetadata)
 	if err != nil {
 		return fmt.Errorf("invalid identity metadata: %v", err)
 	}
@@ -1027,7 +1027,7 @@ func sanitizeEntity(entity *entityStorageEntry) error {
 	}
 
 	// Entity metadata should always be map[string]string
-	err = validateMetadata(entity.Metadata)
+	err = validateMetadata(entity.ExternalMetadata)
 	if err != nil {
 		return fmt.Errorf("invalid entity metadata: %v", err)
 	}

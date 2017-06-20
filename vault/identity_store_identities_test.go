@@ -70,7 +70,7 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
 		Name:      "testidentityname",
-		Metadata: map[string]string{
+		ExternalMetadata: map[string]string{
 			"testkey1": "testmetadatavalue1",
 			"testkey2": "testmetadatavalue2",
 		},
@@ -108,7 +108,7 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
 	}
 
-	identitiesFetched, err := is.memDBIdentitiesByMetadata(map[string]string{
+	identitiesFetched, err := is.memDBIdentitiesByExternalMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 	})
 	if err != nil {
@@ -123,7 +123,7 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	identitiesFetched, err = is.memDBIdentitiesByExternalMetadata(map[string]string{
 		"testkey2": "testmetadatavalue2",
 	})
 	if err != nil {
@@ -138,7 +138,7 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	identitiesFetched, err = is.memDBIdentitiesByExternalMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 		"testkey2": "testmetadatavalue2",
 	})
@@ -160,7 +160,7 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
 		Name:      "testidentityname2",
-		Metadata: map[string]string{
+		ExternalMetadata: map[string]string{
 			"testkey1": "testmetadatavalue1",
 			"testkey3": "testmetadatavalue3",
 		},
@@ -171,7 +171,7 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	identitiesFetched, err = is.memDBIdentitiesByExternalMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 	})
 	if err != nil {
@@ -182,7 +182,7 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		t.Fatalf("bad: length of identities; expected: 2, actual: %d", len(identitiesFetched))
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	identitiesFetched, err = is.memDBIdentitiesByExternalMetadata(map[string]string{
 		"testkey3": "testmetadatavalue3",
 	})
 	if err != nil {
@@ -220,7 +220,7 @@ func TestIdentityStore_IdentityRegister(t *testing.T) {
 	identityData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
+		"external_metadata": map[string]string{
 			"organization": "hashicorp",
 			"team":         "vault",
 		},
@@ -267,7 +267,7 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 	updateData := map[string]interface{}{
 		"name":       "updatedidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
+		"external_metadata": map[string]string{
 			"organization": "updatedorganization",
 			"team":         "updatedteam",
 		},
@@ -291,7 +291,7 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
+		"external_metadata": map[string]string{
 			"organization": "hashicorp",
 			"team":         "vault",
 		},
@@ -332,12 +332,12 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 
-	identityMetadata := resp.Data["metadata"].(map[string]string)
+	identityMetadata := resp.Data["external_metadata"].(map[string]string)
 	updatedOrg := identityMetadata["organization"]
 	updatedTeam := identityMetadata["team"]
 
 	if resp.Data["name"] != "updatedidentityname" || updatedOrg != "updatedorganization" || updatedTeam != "updatedteam" {
-		t.Fatal("failed to update identity information")
+		t.Fatalf("failed to update identity information; \n response data: %#v\n", resp.Data)
 	}
 
 	delete(registerReq.Data, "name")
@@ -371,7 +371,7 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
+		"external_metadata": map[string]string{
 			"organization": "hashicorp",
 			"team":         "vault",
 		},
@@ -410,9 +410,9 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 	if resp.Data["id"].(string) == "" ||
 		resp.Data["entity_id"].(string) == "" ||
 		resp.Data["name"].(string) != registerData["name"] ||
-		!reflect.DeepEqual(registerData["metadata"], resp.Data["metadata"].(map[string]string)) ||
+		!reflect.DeepEqual(registerData["external_metadata"], resp.Data["external_metadata"].(map[string]string)) ||
 		resp.Data["mount_type"].(string) != "github" {
-		t.Fatal("bad: identity read response: %#v\n", resp)
+		t.Fatalf("bad: identity read response; \nexpected: %#v \nactual: %#v\n", registerData, resp.Data)
 	}
 
 	_, ok = resp.Data["mount_id"]
