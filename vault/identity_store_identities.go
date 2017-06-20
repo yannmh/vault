@@ -31,7 +31,7 @@ func identityPaths(i *identityStore) []*framework.Path {
 					Type:        framework.TypeString,
 					Description: "Name of the identity",
 				},
-				"external_metadata": {
+				"metadata": {
 					Type:        framework.TypeMap,
 					Description: "Metadata to be tied to the identity",
 				},
@@ -62,7 +62,7 @@ func identityPaths(i *identityStore) []*framework.Path {
 					Type:        framework.TypeString,
 					Description: "Name of the identity",
 				},
-				"external_metadata": {
+				"metadata": {
 					Type:        framework.TypeMap,
 					Description: "Metadata to be associated with the identity",
 				},
@@ -157,7 +157,7 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 	// Accept metadata in the form of map[string]string to be able to index on
 	// it
 	var identityMetadata map[string]string
-	identityMetadataRaw, ok := d.GetOk("external_metadata")
+	identityMetadataRaw, ok := d.GetOk("metadata")
 	if ok {
 		identityMetadataInput := identityMetadataRaw.(map[string]interface{})
 		if len(identityMetadataInput) > 0 {
@@ -238,7 +238,7 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 
 	// Update the fields
 	identity.Name = identityName
-	identity.ExternalMetadata = identityMetadata
+	identity.Metadata = identityMetadata
 	identity.MountID = mountValidationResp.MountID
 	identity.MountType = mountValidationResp.MountType
 

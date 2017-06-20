@@ -26,12 +26,12 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Type:        framework.TypeString,
 					Description: "Name of the entity",
 				},
-				"external_metadata": {
+				"metadata": {
 					Type:        framework.TypeMap,
 					Description: "Metadata to be associated with the entity",
 				},
 				"policies": {
-					Type:        framework.TypeStringSlice,
+					Type:        framework.TypeCommaStringSlice,
 					Description: "Policies to be tied to the entity",
 				},
 				// "identities", extracted from raw field data
@@ -54,7 +54,7 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Type:        framework.TypeString,
 					Description: "Name of the entity",
 				},
-				"external_metadata": {
+				"metadata": {
 					Type:        framework.TypeMap,
 					Description: "Metadata to be associated with the entity",
 				},
@@ -297,7 +297,7 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 	// Accept metadata in the form of map[string]string to be able to index on
 	// it
 	var entityMetadata map[string]string
-	entityMetadataRaw, ok := d.GetOk("external_metadata")
+	entityMetadataRaw, ok := d.GetOk("metadata")
 	if ok {
 		entityMetadataInput := entityMetadataRaw.(map[string]interface{})
 		if len(entityMetadataInput) > 0 {
@@ -312,7 +312,7 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 		}
 	}
 
-	entity.ExternalMetadata = entityMetadata
+	entity.Metadata = entityMetadata
 
 	// ID creation and some validations
 	err = sanitizeEntity(entity)
@@ -345,11 +345,11 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 		}
 
 		identity := &identityIndexEntry{
-			EntityID:         entity.ID,
-			Name:             input.Name,
-			ExternalMetadata: input.ExternalMetadata,
-			MountID:          mountValidationResp.MountID,
-			MountType:        mountValidationResp.MountType,
+			EntityID:  entity.ID,
+			Name:      input.Name,
+			Metadata:  input.Metadata,
+			MountID:   mountValidationResp.MountID,
+			MountType: mountValidationResp.MountType,
 		}
 
 		err = i.sanitizeIdentity(identity)

@@ -66,12 +66,12 @@ func identityTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
-			"external_metadata": &memdb.IndexSchema{
-				Name:         "external_metadata",
+			"metadata": &memdb.IndexSchema{
+				Name:         "metadata",
 				Unique:       false,
 				AllowMissing: true,
 				Indexer: &memdb.StringMapFieldIndex{
-					Field: "ExternalMetadata",
+					Field: "Metadata",
 				},
 			},
 		},
@@ -96,12 +96,12 @@ func entityTableSchema() *memdb.TableSchema {
 					Field: "Name",
 				},
 			},
-			"external_metadata": &memdb.IndexSchema{
-				Name:         "external_metadata",
+			"metadata": &memdb.IndexSchema{
+				Name:         "metadata",
 				Unique:       false,
 				AllowMissing: true,
 				Indexer: &memdb.StringMapFieldIndex{
-					Field: "ExternalMetadata",
+					Field: "Metadata",
 				},
 			},
 			"merged_entities": &memdb.IndexSchema{

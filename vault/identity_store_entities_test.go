@@ -75,14 +75,14 @@ func TestIdentityStore_RestoringEntities(t *testing.T) {
 
 	registerData := map[string]interface{}{
 		"name": "testentityname",
-		"external_metadata": map[string]string{
+		"metadata": map[string]string{
 			"someusefulkey": "someusefulvalue",
 		},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
@@ -90,7 +90,7 @@ func TestIdentityStore_RestoringEntities(t *testing.T) {
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
@@ -183,7 +183,7 @@ func TestIdentityStore_MemDBEntityIndexes(t *testing.T) {
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
 		Name:      "testidentityname",
-		ExternalMetadata: map[string]string{
+		Metadata: map[string]string{
 			"testkey1": "testmetadatavalue1",
 			"testkey2": "testmetadatavalue2",
 		},
@@ -195,7 +195,7 @@ func TestIdentityStore_MemDBEntityIndexes(t *testing.T) {
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
 		Name:      "testidentityname2",
-		ExternalMetadata: map[string]string{
+		Metadata: map[string]string{
 			"testkey2": "testmetadatavalue2",
 			"testkey3": "testmetadatavalue3",
 		},
@@ -204,7 +204,7 @@ func TestIdentityStore_MemDBEntityIndexes(t *testing.T) {
 	entity := &entityStorageEntry{
 		ID:   "testentityid",
 		Name: "testentityname",
-		ExternalMetadata: map[string]string{
+		Metadata: map[string]string{
 			"someusefulkey": "someusefulvalue",
 		},
 		Identities: []*identityIndexEntry{
@@ -236,7 +236,7 @@ func TestIdentityStore_MemDBEntityIndexes(t *testing.T) {
 		t.Fatalf("entity mismatched entities; expected: %#v\n actual: %#v\n", entity, entityFetched)
 	}
 
-	entitiesFetched, err := is.memDBEntitiesByExternalMetadata(map[string]string{
+	entitiesFetched, err := is.memDBEntitiesByMetadata(map[string]string{
 		"someusefulkey": "someusefulvalue",
 	})
 	if err != nil {
@@ -317,14 +317,14 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	registerData := map[string]interface{}{
 		"name": "testentityname",
-		"external_metadata": map[string]string{
+		"metadata": map[string]string{
 			"someusefulkey": "someusefulvalue",
 		},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
@@ -332,7 +332,7 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
@@ -384,7 +384,7 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	if resp.Data["id"] != id ||
 		resp.Data["name"] != registerData["name"] ||
-		!reflect.DeepEqual(resp.Data["external_metadata"], registerData["external_metadata"]) ||
+		!reflect.DeepEqual(resp.Data["metadata"], registerData["metadata"]) ||
 		len(resp.Data["identities"].([]interface{})) != 2 ||
 		!reflect.DeepEqual(resp.Data["policies"], registerData["policies"]) {
 		t.Fatalf("bad: entity response")
@@ -392,14 +392,14 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	updateData := map[string]interface{}{
 		"name": "updatedentityname",
-		"external_metadata": map[string]string{
+		"metadata": map[string]string{
 			"updatedkey": "updatedvalue",
 		},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "updatedidentityname",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"updatedidentitymetakey": "updatedidentitymetavalue",
 				},
 			},
@@ -425,9 +425,9 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	if resp.Data["id"] != id ||
 		resp.Data["name"] != updateData["name"] ||
-		!reflect.DeepEqual(resp.Data["external_metadata"], updateData["external_metadata"]) ||
+		!reflect.DeepEqual(resp.Data["metadata"], updateData["metadata"]) ||
 		len(resp.Data["identities"].([]interface{})) != 1 ||
-		!reflect.DeepEqual(resp.Data["identities"].([]interface{})[0].(map[string]interface{})["external_metadata"].(map[string]string), updateData["identities"].([]interface{})[0].(map[string]interface{})["external_metadata"].(map[string]string)) ||
+		!reflect.DeepEqual(resp.Data["identities"].([]interface{})[0].(map[string]interface{})["metadata"].(map[string]string), updateData["identities"].([]interface{})[0].(map[string]interface{})["metadata"].(map[string]string)) ||
 		!reflect.DeepEqual(resp.Data["policies"], updateData["policies"]) {
 		t.Fatalf("bad: entity response after update")
 	}
@@ -459,14 +459,14 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 
 	registerData := map[string]interface{}{
 		"name": "testentityname2",
-		"external_metadata": map[string]string{
+		"metadata": map[string]string{
 			"someusefulkey": "someusefulvalue",
 		},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
@@ -474,7 +474,7 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
@@ -484,14 +484,14 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 
 	registerData2 := map[string]interface{}{
 		"name": "testentityname",
-		"external_metadata": map[string]string{
+		"metadata": map[string]string{
 			"someusefulkey": "someusefulvalue",
 		},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname3",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
@@ -499,7 +499,7 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 			map[string]interface{}{
 				"name":       "testidentityname4",
 				"mount_path": "github",
-				"external_metadata": map[string]string{
+				"metadata": map[string]string{
 					"organization": "hashicorp",
 					"team":         "vault",
 				},
