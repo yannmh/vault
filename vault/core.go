@@ -260,9 +260,6 @@ type Core struct {
 	// identityStore is used to manage client entities
 	identityStore *identityStore
 
-	// entitiesLock is used to ensure thread safety for restoring entities
-	entitiesLock sync.Mutex
-
 	// metricsCh is used to stop the metrics streaming
 	metricsCh chan struct{}
 

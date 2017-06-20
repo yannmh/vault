@@ -14,9 +14,6 @@ import (
 )
 
 func (c *Core) loadEntities() error {
-	c.entitiesLock.Lock()
-	defer c.entitiesLock.Unlock()
-
 	if c.identityStore == nil {
 		return fmt.Errorf("identity store is not setup")
 	}
