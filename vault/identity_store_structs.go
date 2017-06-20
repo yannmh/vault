@@ -18,7 +18,7 @@ const (
 
 var (
 	// metaKeyFormatRegEx checks if a metadata key string is valid
-	metaKeyFormatRegEx = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString
+	metaKeyFormatRegEx = regexp.MustCompile(`^[a-zA-Z0-9=/+_-]+$`).MatchString
 )
 
 const (
