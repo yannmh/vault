@@ -38,72 +38,6 @@ func (c *Core) loadEntities() error {
 	return c.identityStore.loadEntities()
 }
 
-func (i *identityStore) loadEntity(entity *entityStorageEntry, previousEntity *entityStorageEntry) error {
-	var err error
-
-	if entity == nil {
-		return fmt.Errorf("entity is nil")
-	}
-
-	// Acquire the lock to modify the entity storage entry
-	lock := locksutil.LockForKey(i.entityLocks, entity.ID)
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Create a MemDB transaction to update both identity and entity
-	txn := i.db.Txn(true)
-	defer txn.Abort()
-
-	for _, identity := range entity.Identities {
-		// Verify that identity is not associated to a different one already
-		identityByFactors, err := i.memDBIdentityByFactors(identity.MountID, identity.Name)
-		if err != nil {
-			return err
-		}
-
-		if identityByFactors != nil && identityByFactors.EntityID != entity.ID {
-			return fmt.Errorf("identity %q in already tied to a different entity %q", identity.ID, entity.ID, identityByFactors.EntityID)
-		}
-
-		// Insert or update identity in MemDB using the transaction created above
-		err = i.memDBUpsertIdentityInTxn(txn, identity)
-		if err != nil {
-			return err
-		}
-	}
-
-	// If previous entity is set, update it in MemDB and persist it
-	if previousEntity != nil {
-		err = i.memDBUpsertEntityInTxn(txn, previousEntity)
-		if err != nil {
-			return err
-		}
-
-		// Persist the previous entity object
-		err = i.storagePacker.PutItem(previousEntity)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Insert or update entity in MemDB using the transaction created above
-	err = i.memDBUpsertEntityInTxn(txn, entity)
-	if err != nil {
-		return err
-	}
-
-	// Persist the entity object
-	err = i.storagePacker.PutItem(entity)
-	if err != nil {
-		return err
-	}
-
-	// Committing the transaction *after* successfully persisting entity
-	txn.Commit()
-
-	return nil
-}
-
 func (i *identityStore) loadEntities() error {
 	// Accumulate existing entities
 	i.logger.Debug("identity: loading entities")
@@ -193,7 +127,6 @@ func (i *identityStore) loadEntities() error {
 			}
 
 			for _, entity := range bucketEntry.Items {
-				fmt.Printf("loading entity: %#v\n", entity)
 				// Only update MemDB and don't hit the storage again
 				err = i.upsertEntity(entity, nil, false)
 				if err != nil {
