@@ -27,7 +27,7 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Description: "Name of the entity",
 				},
 				"metadata": {
-					Type:        framework.TypeCommaStringSlice,
+					Type:        framework.TypeStringSlice,
 					Description: "Metadata to be associated with the entity. Format should be a comma separated list of `key=value` pairs.",
 				},
 				"policies": {
@@ -59,7 +59,7 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Description: "Metadata to be associated with the entity. Format should be a comma separated list of `key=value` pairs.",
 				},
 				"policies": {
-					Type:        framework.TypeStringSlice,
+					Type:        framework.TypeCommaStringSlice,
 					Description: "Policies to be tied to the entity",
 				},
 				// "identities", extracted from raw field data
@@ -334,7 +334,7 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 			return logical.ErrorResponse(fmt.Sprintf("invalid mount path %q", input.MountPath)), nil
 		}
 
-		identityMetadata, err := i.parseMetadata(strings.Split(input.Metadata, ","))
+		identityMetadata, err := i.parseMetadata(input.Metadata)
 		if err != nil {
 			return logical.ErrorResponse(fmt.Sprintf("failed to parse identity metadata: %v", err)), nil
 		}

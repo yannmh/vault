@@ -20,7 +20,7 @@ func (i *identityStore) parseMetadata(keyPairs []string) (map[string]string, err
 
 	metadata := make(map[string]string, len(keyPairs))
 	for _, keyPair := range keyPairs {
-		keyPairSlice := strings.SplitN(keyPair, "=", 2)
+		keyPairSlice := strings.SplitN(keyPair, ":", 2)
 		if len(keyPairSlice) != 2 {
 			return nil, fmt.Errorf("invalid key pair %q", keyPair)
 		}

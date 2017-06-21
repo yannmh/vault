@@ -32,7 +32,7 @@ func identityPaths(i *identityStore) []*framework.Path {
 					Description: "Name of the identity",
 				},
 				"metadata": {
-					Type:        framework.TypeCommaStringSlice,
+					Type:        framework.TypeStringSlice,
 					Description: "Metadata to be associated with the identity. Format should be a comma separated list of `key=value` pairs.",
 				},
 			},
@@ -63,7 +63,7 @@ func identityPaths(i *identityStore) []*framework.Path {
 					Description: "Name of the identity",
 				},
 				"metadata": {
-					Type:        framework.TypeCommaStringSlice,
+					Type:        framework.TypeStringSlice,
 					Description: "Metadata to be associated with the identity. Format should be a comma separated list of `key=value` pairs.",
 				},
 			},
