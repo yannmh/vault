@@ -220,7 +220,7 @@ func TestIdentityStore_IdentityRegister(t *testing.T) {
 	identityData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata":   "organization=hashicorp,team=vault",
+		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
 	identityReq := &logical.Request{
@@ -264,7 +264,7 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 	updateData := map[string]interface{}{
 		"name":       "updatedidentityname",
 		"mount_path": "github",
-		"metadata":   "organization=updatedorganization,team=updatedteam",
+		"metadata":   []string{"organization:updatedorganization", "team:updatedteam"},
 	}
 
 	updateReq := &logical.Request{
@@ -285,7 +285,7 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata":   "organization=hashicorp,team=vault",
+		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
 	registerReq := &logical.Request{
@@ -362,7 +362,7 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata":   "organization=hashicorp,team=vault",
+		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
 	registerReq := &logical.Request{

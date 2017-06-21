@@ -75,17 +75,17 @@ func TestIdentityStore_RestoringEntities(t *testing.T) {
 
 	registerData := map[string]interface{}{
 		"name":     "testentityname",
-		"metadata": "someusefulkey=someusefulvalue",
+		"metadata": []string{"someusefulkey:someusefulvalue"},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 		},
 		"policies": []string{"testpolicy1", "testpolicy2"},
@@ -309,17 +309,17 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	registerData := map[string]interface{}{
 		"name":     "testentityname",
-		"metadata": "someusefulkey=someusefulvalue",
+		"metadata": []string{"someusefulkey:someusefulvalue"},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 		},
 		"policies": []string{"testpolicy1", "testpolicy2"},
@@ -375,12 +375,12 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	updateData := map[string]interface{}{
 		"name":     "updatedentityname",
-		"metadata": "updatedkey=updatedvalue",
+		"metadata": []string{"updatedkey:updatedvalue"},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "updatedidentityname",
 				"mount_path": "github",
-				"metadata":   "updatedidentitymetakey=updatedidentitymetavalue",
+				"metadata":   []string{"updatedidentitymetakey:updatedidentitymetavalue"},
 			},
 		},
 		"policies": []string{"updatedpolicy1", "updatedpolicy2"},
@@ -436,34 +436,34 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 
 	registerData := map[string]interface{}{
 		"name":     "testentityname2",
-		"metadata": "someusefulkey=someusefulvalue",
+		"metadata": []string{"someusefulkey:someusefulvalue"},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 		},
 	}
 
 	registerData2 := map[string]interface{}{
 		"name":     "testentityname",
-		"metadata": "someusefulkey=someusefulvalue",
+		"metadata": []string{"someusefulkey:someusefulvalue"},
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname3",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 			map[string]interface{}{
 				"name":       "testidentityname4",
 				"mount_path": "github",
-				"metadata":   "organization=hashicorp,team=vault",
+				"metadata":   []string{"organization:hashicorp", "team:vault"},
 			},
 		},
 	}
