@@ -27,8 +27,8 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Description: "Name of the entity",
 				},
 				"metadata": {
-					Type:        framework.TypeMap,
-					Description: "Metadata to be associated with the entity",
+					Type:        framework.TypeCommaStringSlice,
+					Description: "Metadata to be associated with the entity. Format should be a comma separated list of `key=value` pairs.",
 				},
 				"policies": {
 					Type:        framework.TypeCommaStringSlice,
@@ -55,8 +55,8 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Description: "Name of the entity",
 				},
 				"metadata": {
-					Type:        framework.TypeMap,
-					Description: "Metadata to be associated with the entity",
+					Type:        framework.TypeCommaStringSlice,
+					Description: "Metadata to be associated with the entity. Format should be a comma separated list of `key=value` pairs.",
 				},
 				"policies": {
 					Type:        framework.TypeStringSlice,
@@ -296,23 +296,13 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 
 	// Accept metadata in the form of map[string]string to be able to index on
 	// it
-	var entityMetadata map[string]string
 	entityMetadataRaw, ok := d.GetOk("metadata")
 	if ok {
-		entityMetadataInput := entityMetadataRaw.(map[string]interface{})
-		if len(entityMetadataInput) > 0 {
-			entityMetadata = make(map[string]string, len(entityMetadataInput))
-			for k, v := range entityMetadataInput {
-				vStr, ok := v.(string)
-				if !ok {
-					return logical.ErrorResponse(fmt.Sprintf("invalid metadata value %#v for key %q", v, k)), nil
-				}
-				entityMetadata[k] = vStr
-			}
+		entity.Metadata, err = i.parseMetadata(entityMetadataRaw.([]string))
+		if err != nil {
+			return logical.ErrorResponse(fmt.Sprintf("failed to parse entity metadata: %v", err)), nil
 		}
 	}
-
-	entity.Metadata = entityMetadata
 
 	// ID creation and some validations
 	err = sanitizeEntity(entity)
@@ -344,10 +334,15 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 			return logical.ErrorResponse(fmt.Sprintf("invalid mount path %q", input.MountPath)), nil
 		}
 
+		identityMetadata, err := i.parseMetadata(strings.Split(input.Metadata, ","))
+		if err != nil {
+			return logical.ErrorResponse(fmt.Sprintf("failed to parse identity metadata: %v", err)), nil
+		}
+
 		identity := &identityIndexEntry{
 			EntityID:  entity.ID,
 			Name:      input.Name,
-			Metadata:  input.Metadata,
+			Metadata:  identityMetadata,
 			MountID:   mountValidationResp.MountID,
 			MountType: mountValidationResp.MountType,
 		}

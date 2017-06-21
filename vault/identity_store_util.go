@@ -13,6 +13,23 @@ import (
 	"github.com/hashicorp/vault/logical"
 )
 
+func (i *identityStore) parseMetadata(keyPairs []string) (map[string]string, error) {
+	if len(keyPairs) == 0 {
+		return nil, nil
+	}
+
+	metadata := make(map[string]string, len(keyPairs))
+	for _, keyPair := range keyPairs {
+		keyPairSlice := strings.SplitN(keyPair, "=", 2)
+		if len(keyPairSlice) != 2 {
+			return nil, fmt.Errorf("invalid key pair %q", keyPair)
+		}
+		metadata[keyPairSlice[0]] = keyPairSlice[1]
+	}
+
+	return metadata, nil
+}
+
 func (c *Core) loadEntities() error {
 	if c.identityStore == nil {
 		return fmt.Errorf("identity store is not setup")

@@ -74,26 +74,18 @@ func TestIdentityStore_RestoringEntities(t *testing.T) {
 	is := identitystore.(*identityStore)
 
 	registerData := map[string]interface{}{
-		"name": "testentityname",
-		"metadata": map[string]string{
-			"someusefulkey": "someusefulvalue",
-		},
+		"name":     "testentityname",
+		"metadata": "someusefulkey=someusefulvalue",
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 		},
 		"policies": []string{"testpolicy1", "testpolicy2"},
@@ -316,26 +308,18 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 	is := TestIdentityStoreWithGithubAuth(t)
 
 	registerData := map[string]interface{}{
-		"name": "testentityname",
-		"metadata": map[string]string{
-			"someusefulkey": "someusefulvalue",
-		},
+		"name":     "testentityname",
+		"metadata": "someusefulkey=someusefulvalue",
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 		},
 		"policies": []string{"testpolicy1", "testpolicy2"},
@@ -384,24 +368,19 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	if resp.Data["id"] != id ||
 		resp.Data["name"] != registerData["name"] ||
-		!reflect.DeepEqual(resp.Data["metadata"], registerData["metadata"]) ||
 		len(resp.Data["identities"].([]interface{})) != 2 ||
 		!reflect.DeepEqual(resp.Data["policies"], registerData["policies"]) {
 		t.Fatalf("bad: entity response")
 	}
 
 	updateData := map[string]interface{}{
-		"name": "updatedentityname",
-		"metadata": map[string]string{
-			"updatedkey": "updatedvalue",
-		},
+		"name":     "updatedentityname",
+		"metadata": "updatedkey=updatedvalue",
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "updatedidentityname",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"updatedidentitymetakey": "updatedidentitymetavalue",
-				},
+				"metadata":   "updatedidentitymetakey=updatedidentitymetavalue",
 			},
 		},
 		"policies": []string{"updatedpolicy1", "updatedpolicy2"},
@@ -425,11 +404,9 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	if resp.Data["id"] != id ||
 		resp.Data["name"] != updateData["name"] ||
-		!reflect.DeepEqual(resp.Data["metadata"], updateData["metadata"]) ||
 		len(resp.Data["identities"].([]interface{})) != 1 ||
-		!reflect.DeepEqual(resp.Data["identities"].([]interface{})[0].(map[string]interface{})["metadata"].(map[string]string), updateData["identities"].([]interface{})[0].(map[string]interface{})["metadata"].(map[string]string)) ||
 		!reflect.DeepEqual(resp.Data["policies"], updateData["policies"]) {
-		t.Fatalf("bad: entity response after update")
+		t.Fatalf("bad: entity response after update; resp: %#v\n updateData: %#v\n", resp.Data, updateData)
 	}
 
 	deleteReq := &logical.Request{
@@ -458,51 +435,35 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	is := TestIdentityStoreWithGithubAuth(t)
 
 	registerData := map[string]interface{}{
-		"name": "testentityname2",
-		"metadata": map[string]string{
-			"someusefulkey": "someusefulvalue",
-		},
+		"name":     "testentityname2",
+		"metadata": "someusefulkey=someusefulvalue",
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname1",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 			map[string]interface{}{
 				"name":       "testidentityname2",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 		},
 	}
 
 	registerData2 := map[string]interface{}{
-		"name": "testentityname",
-		"metadata": map[string]string{
-			"someusefulkey": "someusefulvalue",
-		},
+		"name":     "testentityname",
+		"metadata": "someusefulkey=someusefulvalue",
 		"identities": []interface{}{
 			map[string]interface{}{
 				"name":       "testidentityname3",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 			map[string]interface{}{
 				"name":       "testidentityname4",
 				"mount_path": "github",
-				"metadata": map[string]string{
-					"organization": "hashicorp",
-					"team":         "vault",
-				},
+				"metadata":   "organization=hashicorp,team=vault",
 			},
 		},
 	}

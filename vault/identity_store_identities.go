@@ -32,8 +32,8 @@ func identityPaths(i *identityStore) []*framework.Path {
 					Description: "Name of the identity",
 				},
 				"metadata": {
-					Type:        framework.TypeMap,
-					Description: "Metadata to be tied to the identity",
+					Type:        framework.TypeCommaStringSlice,
+					Description: "Metadata to be associated with the identity. Format should be a comma separated list of `key=value` pairs.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -63,8 +63,8 @@ func identityPaths(i *identityStore) []*framework.Path {
 					Description: "Name of the identity",
 				},
 				"metadata": {
-					Type:        framework.TypeMap,
-					Description: "Metadata to be associated with the identity",
+					Type:        framework.TypeCommaStringSlice,
+					Description: "Metadata to be associated with the identity. Format should be a comma separated list of `key=value` pairs.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -159,16 +159,9 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 	var identityMetadata map[string]string
 	identityMetadataRaw, ok := d.GetOk("metadata")
 	if ok {
-		identityMetadataInput := identityMetadataRaw.(map[string]interface{})
-		if len(identityMetadataInput) > 0 {
-			identityMetadata = make(map[string]string, len(identityMetadataInput))
-			for k, v := range identityMetadataInput {
-				vStr, ok := v.(string)
-				if !ok {
-					return logical.ErrorResponse(fmt.Sprintf("invalid metadata value %#v for key %q", v, k)), nil
-				}
-				identityMetadata[k] = vStr
-			}
+		identityMetadata, err = i.parseMetadata(identityMetadataRaw.([]string))
+		if err != nil {
+			return logical.ErrorResponse(fmt.Sprintf("failed to parse identity metadata: %v", err)), nil
 		}
 	}
 

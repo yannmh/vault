@@ -220,10 +220,7 @@ func TestIdentityStore_IdentityRegister(t *testing.T) {
 	identityData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
-			"organization": "hashicorp",
-			"team":         "vault",
-		},
+		"metadata":   "organization=hashicorp,team=vault",
 	}
 
 	identityReq := &logical.Request{
@@ -267,10 +264,7 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 	updateData := map[string]interface{}{
 		"name":       "updatedidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
-			"organization": "updatedorganization",
-			"team":         "updatedteam",
-		},
+		"metadata":   "organization=updatedorganization,team=updatedteam",
 	}
 
 	updateReq := &logical.Request{
@@ -291,10 +285,7 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
-			"organization": "hashicorp",
-			"team":         "vault",
-		},
+		"metadata":   "organization=hashicorp,team=vault",
 	}
 
 	registerReq := &logical.Request{
@@ -371,10 +362,7 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":       "testidentityname",
 		"mount_path": "github",
-		"metadata": map[string]string{
-			"organization": "hashicorp",
-			"team":         "vault",
-		},
+		"metadata":   "organization=hashicorp,team=vault",
 	}
 
 	registerReq := &logical.Request{
@@ -410,7 +398,6 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 	if resp.Data["id"].(string) == "" ||
 		resp.Data["entity_id"].(string) == "" ||
 		resp.Data["name"].(string) != registerData["name"] ||
-		!reflect.DeepEqual(registerData["metadata"], resp.Data["metadata"].(map[string]string)) ||
 		resp.Data["mount_type"].(string) != "github" {
 		t.Fatalf("bad: identity read response; \nexpected: %#v \nactual: %#v\n", registerData, resp.Data)
 	}

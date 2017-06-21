@@ -115,9 +115,9 @@ type entityStorageEntry struct {
 // register or modify any identity. This is different than the structure Vault
 // populates internally for indexing.
 type identityInput struct {
-	Metadata  map[string]string `json:"metadata" structs:"metadata" mapstructure:"metadata"`
-	MountPath string            `json:"mount_path" structs:"mount_path" mapstructure:"mount_path"`
-	Name      string            `json:"name" structs:"name" mapstructure:"name"`
+	Metadata  string `json:"metadata" structs:"metadata" mapstructure:"metadata"`
+	MountPath string `json:"mount_path" structs:"mount_path" mapstructure:"mount_path"`
+	Name      string `json:"name" structs:"name" mapstructure:"name"`
 }
 
 // identityIndexEntry represents the identity that gets stored inside of the
