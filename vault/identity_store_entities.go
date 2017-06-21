@@ -191,7 +191,7 @@ func (i *identityStore) pathEntityMergeID(req *logical.Request, d *framework.Fie
 			// Special case the identities that gets transfered over due to merge
 			// operation. This might also aid in controlling any actions to be
 			// taken on the merged identities.
-			identity.MountType = "EntityAlias"
+			identity.MountType = entityAliasMountType
 
 			// Set the desired entity id
 			identity.EntityID = toEntity.ID
@@ -275,8 +275,11 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 		newEntity = true
 	}
 
-	// Update the policies
-	entity.Policies = d.Get("policies").([]string)
+	// Update the policies if supplied
+	entityPoliciesRaw, ok := d.GetOk("policies")
+	if ok {
+		entity.Policies = entityPoliciesRaw.([]string)
+	}
 
 	// Get the name
 	entityName := d.Get("name").(string)

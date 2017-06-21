@@ -14,6 +14,9 @@ import (
 const (
 	// Storage prefixes
 	entityPrefix = "entity/"
+
+	// EntityAlias mount type
+	entityAliasMountType = "EntityAlias"
 )
 
 var (
