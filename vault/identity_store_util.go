@@ -1080,6 +1080,9 @@ func (i *identityStore) updateIdentityInEntity(entity *entityStorageEntry, ident
 	return nil
 }
 
+// This function is not used currently. Leaving this here in hope that it will
+// be of use. When you are reading this, if this comment is atleast a year old,
+// delete this function.
 func (i *identityStore) memDBAssociateIdentitiesToEntityInTxn(txn *memdb.Txn, entity *entityStorageEntry, identities []*identityIndexEntry) error {
 	var err error
 
