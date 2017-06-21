@@ -25,6 +25,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
+	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/vault/audit"
@@ -63,7 +64,7 @@ type ServerCommand struct {
 }
 
 func (c *ServerCommand) Run(args []string) int {
-	var dev, verifyOnly, devHA, devTransactional bool
+	var dev, verifyOnly, devHA, devTransactional, devLeasedGeneric bool
 	var configPath []string
 	var logLevel, devRootTokenID, devListenAddress string
 	flags := c.Meta.FlagSet("server", meta.FlagSetDefault)
@@ -72,8 +73,9 @@ func (c *ServerCommand) Run(args []string) int {
 	flags.StringVar(&devListenAddress, "dev-listen-address", "", "")
 	flags.StringVar(&logLevel, "log-level", "info", "")
 	flags.BoolVar(&verifyOnly, "verify-only", false, "")
-	flags.BoolVar(&devHA, "ha", false, "")
-	flags.BoolVar(&devTransactional, "transactional", false, "")
+	flags.BoolVar(&devHA, "dev-ha", false, "")
+	flags.BoolVar(&devTransactional, "dev-transactional", false, "")
+	flags.BoolVar(&devLeasedGeneric, "dev-leased-generic", false, "")
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.Var((*sliceflag.StringFlag)(&configPath), "config", "config")
 	if err := flags.Parse(args); err != nil {
@@ -126,7 +128,7 @@ func (c *ServerCommand) Run(args []string) int {
 		devListenAddress = os.Getenv("VAULT_DEV_LISTEN_ADDRESS")
 	}
 
-	if devHA || devTransactional {
+	if devHA || devTransactional || devLeasedGeneric {
 		dev = true
 	}
 
@@ -242,6 +244,9 @@ func (c *ServerCommand) Run(args []string) int {
 	}
 	if dev {
 		coreConfig.DevToken = devRootTokenID
+		if devLeasedGeneric {
+			coreConfig.LogicalBackends["generic"] = vault.LeasedPassthroughBackendFactory
+		}
 	}
 
 	var disableClustering bool
@@ -890,6 +895,21 @@ func (c *ServerCommand) setupTelemetry(config *server.Config) error {
 			return err
 		}
 		sink.Start()
+		fanout = append(fanout, sink)
+	}
+
+	if telConfig.DogStatsDAddr != "" {
+		var tags []string
+
+		if telConfig.DogStatsDTags != nil {
+			tags = telConfig.DogStatsDTags
+		}
+
+		sink, err := datadog.NewDogStatsdSink(telConfig.DogStatsDAddr, metricsConf.HostName)
+		if err != nil {
+			return fmt.Errorf("failed to start DogStatsD sink. Got: %s", err)
+		}
+		sink.SetTags(tags)
 		fanout = append(fanout, sink)
 	}
 

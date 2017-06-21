@@ -1,8 +1,22 @@
 ## Next (unreleased)
 
+FEATURES:
+
+ * **CouchDB Storage**: CouchDB can now be used for Vault storage
+
+IMPROVEMENTS:
+
+ * core: CORS allowed origins can now be configured [GH-2021]
+ * storage/s3: More efficient paging when an object has a lot of subobjects
+   [GH-2780]
+ * telemetry: Add support for DogStatsD [GH-2490]
+
 BUG FIXES:
 
- * api/health: Consider the response code from standby nodes [GH-2850]
+ * api/health: Don't treat standby `429` codes as an error [GH-2850]
+ * api/leases: Fix lease lookup returning lease properties at the top level
+ * core: Relocated `sys/leases/renew` returns same payload as original 
+   `sys/leases` endpoint [GH-2891]
 
 ## 0.7.3 (June 7th, 2017)
 
