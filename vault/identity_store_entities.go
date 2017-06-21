@@ -83,7 +83,7 @@ func entityPaths(i *identityStore) []*framework.Path {
 			HelpDescription: strings.TrimSpace(entityHelp["entity-id-list"][1]),
 		},
 		{
-			Pattern: "entity/merge/id/?$",
+			Pattern: "entity/merge/?$",
 			Fields: map[string]*framework.FieldSchema{
 				"from_entity_ids": {
 					Type:        framework.TypeCommaStringSlice,
