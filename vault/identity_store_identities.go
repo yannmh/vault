@@ -223,7 +223,9 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 		}
 	}
 
-	// ID creation and other validations
+	// ID creation and other validations; This is more useful for new entities
+	// and may not perform anything for the existing entities. Placing the
+	// check here to make the flow common for both new and existing entities.
 	err = sanitizeEntity(entity)
 	if err != nil {
 		return nil, err
