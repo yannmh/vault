@@ -6,6 +6,7 @@ import (
 	"hash"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/golang/snappy"
 	"github.com/hashicorp/vault/helper/jsonutil"
@@ -22,8 +23,9 @@ const (
 // this supports only 256 bucket entries and hence relies on the first byte of
 // the hash value for indexing.
 type storagePacker struct {
-	config *storagePackerConfig
-	view   logical.Storage
+	config   *storagePackerConfig
+	view     logical.Storage
+	hashLock sync.RWMutex
 }
 
 // storagePackerConfig specifies the properties of the packer
@@ -128,6 +130,8 @@ func (s *storageBucketEntry) upsert(entry *entityStorageEntry) error {
 
 // BucketIndex returns the bucket key index for a given storage entry key
 func (s *storagePacker) BucketIndex(key string) uint8 {
+	s.hashLock.Lock()
+	defer s.hashLock.Unlock()
 	s.config.HashFunc.Reset()
 	s.config.HashFunc.Write([]byte(key))
 	return uint8(s.config.HashFunc.Sum(nil)[0])
