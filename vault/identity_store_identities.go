@@ -131,7 +131,7 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 	// Get entity id
 	entityID := d.Get("entity_id").(string)
 	if entityID != "" {
-		entity, err := i.memDBEntityByID(entityID)
+		entity, err = i.memDBEntityByID(entityID)
 		if err != nil {
 			return nil, err
 		}

@@ -76,18 +76,6 @@ func TestIdentityStore_RestoringEntities(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":     "testentityname",
 		"metadata": []string{"someusefulkey:someusefulvalue"},
-		"identities": []interface{}{
-			map[string]interface{}{
-				"name":       "testidentityname1",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-			map[string]interface{}{
-				"name":       "testidentityname2",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-		},
 		"policies": []string{"testpolicy1", "testpolicy2"},
 	}
 
@@ -310,18 +298,6 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":     "testentityname",
 		"metadata": []string{"someusefulkey:someusefulvalue"},
-		"identities": []interface{}{
-			map[string]interface{}{
-				"name":       "testidentityname1",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-			map[string]interface{}{
-				"name":       "testidentityname2",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-		},
 		"policies": []string{"testpolicy1", "testpolicy2"},
 	}
 
@@ -346,16 +322,6 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 		t.Fatalf("invalid entity id")
 	}
 
-	identitiesRaw, ok := resp.Data["identities"]
-	if !ok {
-		t.Fatalf("identities missing in entity registration response")
-	}
-	identities := identitiesRaw.([]string)
-
-	if len(identities) != 2 {
-		t.Fatalf("bad: number of identities in entity registration response; expected: 2, actual: %d", len(identities))
-	}
-
 	readReq := &logical.Request{
 		Path:      "entity/id/" + id,
 		Operation: logical.ReadOperation,
@@ -368,7 +334,6 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	if resp.Data["id"] != id ||
 		resp.Data["name"] != registerData["name"] ||
-		len(resp.Data["identities"].([]interface{})) != 2 ||
 		!reflect.DeepEqual(resp.Data["policies"], registerData["policies"]) {
 		t.Fatalf("bad: entity response")
 	}
@@ -376,13 +341,6 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 	updateData := map[string]interface{}{
 		"name":     "updatedentityname",
 		"metadata": []string{"updatedkey:updatedvalue"},
-		"identities": []interface{}{
-			map[string]interface{}{
-				"name":       "updatedidentityname",
-				"mount_path": "github",
-				"metadata":   []string{"updatedidentitymetakey:updatedidentitymetavalue"},
-			},
-		},
 		"policies": []string{"updatedpolicy1", "updatedpolicy2"},
 	}
 
@@ -404,7 +362,6 @@ func TestIdentityStore_EntityCRUD(t *testing.T) {
 
 	if resp.Data["id"] != id ||
 		resp.Data["name"] != updateData["name"] ||
-		len(resp.Data["identities"].([]interface{})) != 1 ||
 		!reflect.DeepEqual(resp.Data["policies"], updateData["policies"]) {
 		t.Fatalf("bad: entity response after update; resp: %#v\n updateData: %#v\n", resp.Data, updateData)
 	}
@@ -437,35 +394,35 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	registerData := map[string]interface{}{
 		"name":     "testentityname2",
 		"metadata": []string{"someusefulkey:someusefulvalue"},
-		"identities": []interface{}{
-			map[string]interface{}{
-				"name":       "testidentityname1",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-			map[string]interface{}{
-				"name":       "testidentityname2",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-		},
 	}
 
 	registerData2 := map[string]interface{}{
 		"name":     "testentityname",
 		"metadata": []string{"someusefulkey:someusefulvalue"},
-		"identities": []interface{}{
-			map[string]interface{}{
-				"name":       "testidentityname3",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-			map[string]interface{}{
-				"name":       "testidentityname4",
-				"mount_path": "github",
-				"metadata":   []string{"organization:hashicorp", "team:vault"},
-			},
-		},
+	}
+
+	identityRegisterData1 := map[string]interface{}{
+		"name":       "testidentityname1",
+		"mount_path": "github",
+		"metadata":   []string{"organization:hashicorp", "team:vault"},
+	}
+
+	identityRegisterData2 := map[string]interface{}{
+		"name":       "testidentityname2",
+		"mount_path": "github",
+		"metadata":   []string{"organization:hashicorp", "team:vault"},
+	}
+
+	identityRegisterData3 := map[string]interface{}{
+		"name":       "testidentityname3",
+		"mount_path": "github",
+		"metadata":   []string{"organization:hashicorp", "team:vault"},
+	}
+
+	identityRegisterData4 := map[string]interface{}{
+		"name":       "testidentityname4",
+		"mount_path": "github",
+		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
 	registerReq := &logical.Request{
@@ -482,6 +439,29 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 
 	entityID1 := resp.Data["id"].(string)
 
+	// Set entity ID in identity registration data and register identity
+	identityRegisterData1["entity_id"] = entityID1
+	identityRegisterData2["entity_id"] = entityID1
+
+	identityReq := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "identity",
+		Data:      identityRegisterData1,
+	}
+
+	// Register the identity
+	resp, err = is.HandleRequest(identityReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	// Register the identity
+	identityReq.Data = identityRegisterData2
+	resp, err = is.HandleRequest(identityReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
 	entity1, err := is.memDBEntityByID(entityID1)
 	if err != nil {
 		t.Fatal(err)
@@ -489,20 +469,8 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	if entity1 == nil {
 		t.Fatalf("failed to create entity: %v", err)
 	}
-
-	identities1 := resp.Data["identities"].([]string)
-	if len(identities1) != 2 {
-		t.Fatalf("bad: number of identities in entity; expected: 2, actual: %d", len(identities1))
-	}
-
-	for _, identityID := range identities1 {
-		identity, err := is.memDBIdentityByID(identityID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if identity == nil {
-			t.Fatalf("identity of the entity is not indexed")
-		}
+	if len(entity1.Identities) != 2 {
+		t.Fatalf("bad: number of identities in entity; expected: 2, actual: %d", len(entity1.Identities))
 	}
 
 	registerReq.Data = registerData2
@@ -513,6 +481,28 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	}
 
 	entityID2 := resp.Data["id"].(string)
+	// Set entity ID in identity registration data and register identity
+	identityRegisterData3["entity_id"] = entityID2
+	identityRegisterData4["entity_id"] = entityID2
+
+	identityReq = &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "identity",
+		Data:      identityRegisterData3,
+	}
+
+	// Register the identity
+	resp, err = is.HandleRequest(identityReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	// Register the identity
+	identityReq.Data = identityRegisterData4
+	resp, err = is.HandleRequest(identityReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
 
 	entity2, err := is.memDBEntityByID(entityID2)
 	if err != nil {
@@ -522,19 +512,8 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 		t.Fatalf("failed to create entity: %v", err)
 	}
 
-	identities2 := resp.Data["identities"].([]string)
-	if len(identities2) != 2 {
-		t.Fatalf("bad: number of identities in entity; expected: 2, actual: %d", len(identities2))
-	}
-
-	for _, identityID := range identities2 {
-		identity, err := is.memDBIdentityByID(identityID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if identity == nil {
-			t.Fatalf("identity of the entity is not indexed")
-		}
+	if len(entity2.Identities) != 2 {
+		t.Fatalf("bad: number of identities in entity; expected: 2, actual: %d", len(entity2.Identities))
 	}
 
 	mergeData := map[string]interface{}{
@@ -543,7 +522,7 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	}
 	mergeReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "entity/merge/id",
+		Path:      "entity/merge",
 		Data:      mergeData,
 	}
 

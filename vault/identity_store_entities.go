@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
-	"github.com/mitchellh/mapstructure"
 )
 
 // entityPaths returns the API endpoints supported to operate on entities.
@@ -312,53 +311,6 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 	if err != nil {
 		return nil, err
 	}
-
-	// Get the identities input
-	var identitiesSlice []interface{}
-	identitiesRaw, ok := d.Raw["identities"]
-	if ok {
-		identitiesSlice = identitiesRaw.([]interface{})
-	}
-
-	// Prepare parsed collection of given identities
-	var identities []*identityIndexEntry
-	for _, identityRaw := range identitiesSlice {
-		var input identityInput
-		if err = mapstructure.WeakDecode(identityRaw, &input); err != nil {
-			return nil, fmt.Errorf("failed to decode identity input: %v", err)
-		}
-
-		if input.MountPath == "" {
-			return logical.ErrorResponse("missing mount path"), nil
-		}
-
-		mountValidationResp := i.validateMountPathFunc(input.MountPath)
-		if mountValidationResp == nil {
-			return logical.ErrorResponse(fmt.Sprintf("invalid mount path %q", input.MountPath)), nil
-		}
-
-		identityMetadata, err := i.parseMetadata(input.Metadata)
-		if err != nil {
-			return logical.ErrorResponse(fmt.Sprintf("failed to parse identity metadata: %v", err)), nil
-		}
-
-		identity := &identityIndexEntry{
-			EntityID:  entity.ID,
-			Name:      input.Name,
-			Metadata:  identityMetadata,
-			MountID:   mountValidationResp.MountID,
-			MountType: mountValidationResp.MountType,
-		}
-
-		err = i.sanitizeIdentity(identity)
-		if err != nil {
-			return nil, err
-		}
-
-		identities = append(identities, identity)
-	}
-
-	entity.Identities = identities
 
 	// Prepare the response
 	respData := map[string]interface{}{
