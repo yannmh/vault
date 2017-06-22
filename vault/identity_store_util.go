@@ -146,6 +146,12 @@ func (i *identityStore) loadEntities() error {
 	return nil
 }
 
+// upsertEntity either creates or updates an existing entity. The operations
+// will be updated in both MemDB and storage. If 'persist' is set to false,
+// then storage will not be updated. When an identity is transferred from one
+// entity to another, both the source and destination entities should get
+// updated, in which case, callers should send in both entity and
+// previousEntity.
 func (i *identityStore) upsertEntity(entity *entityStorageEntry, previousEntity *entityStorageEntry, persist bool) error {
 	var err error
 
