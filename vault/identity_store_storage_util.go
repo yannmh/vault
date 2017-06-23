@@ -24,10 +24,11 @@ const (
 // this supports only 256 bucket entries and hence relies on the first byte of
 // the hash value for indexing.
 type storagePacker struct {
-	config   *storagePackerConfig
-	view     logical.Storage
-	hashLock sync.RWMutex
-	logger   log.Logger
+	config        *storagePackerConfig
+	view          logical.Storage
+	hashLock      sync.RWMutex
+	logger        log.Logger
+	configPersist sync.Once
 }
 
 // storagePackerConfig specifies the properties of the packer
@@ -51,13 +52,38 @@ type storageBucketEntry struct {
 	Items []*entityStorageEntry `json:"items" structs:"items" mapstructure:"items"`
 }
 
+// persistPackerConfigOnceFunc stores the packer configuration in the storage
+func (s *storagePacker) persistPackerConfigOnceFunc() {
+	// Prepare the values that needs to get persisted
+	configStorageEntry := &configStorageEntry{
+		NumBuckets: s.config.NumBuckets,
+		ViewPrefix: s.config.ViewPrefix,
+	}
+
+	entry, err := logical.StorageEntryJSON(s.config.Location, configStorageEntry)
+	if err != nil {
+		s.logger.Error("failed to create storage entry for storage packer properties", "error", err)
+		return
+	}
+
+	// Persist the packer config properties
+	err = s.view.Put(entry)
+	if err != nil {
+		s.logger.Error("failed to persist storage packer properties", "error", err)
+		return
+	}
+}
+
 // View returns the storage view configured to be used by the packer
 func (s *storagePacker) View() logical.Storage {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
 	return s.view
 }
 
 // Get returns a bucket entry for a given bucket entry key
 func (s *storagePacker) Get(bucketEntryKey string) (*storageBucketEntry, error) {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
+
 	if bucketEntryKey == "" {
 		return nil, fmt.Errorf("missing bucket entry key")
 	}
@@ -132,6 +158,8 @@ func (s *storageBucketEntry) upsert(entry *entityStorageEntry) error {
 
 // BucketIndex returns the bucket key index for a given storage entry key
 func (s *storagePacker) BucketIndex(key string) uint8 {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
+
 	s.hashLock.Lock()
 	defer s.hashLock.Unlock()
 	s.config.HashFunc.Reset()
@@ -141,12 +169,15 @@ func (s *storagePacker) BucketIndex(key string) uint8 {
 
 // BucketKey returns the bucket key for a given entity ID
 func (s *storagePacker) BucketKey(entityID string) string {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
 	return strconv.Itoa(int(s.BucketIndex(entityID)))
 }
 
 // DeleteItem removes the storage entry which the given key refers to from its
 // corresponding bucket.
 func (s *storagePacker) DeleteItem(entityID string) error {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
+
 	if entityID == "" {
 		return fmt.Errorf("empty entity ID")
 	}
@@ -204,6 +235,8 @@ func (s *storagePacker) DeleteItem(entityID string) error {
 
 // Put stores a packed bucket entry
 func (s *storagePacker) Put(bucketEntry *storageBucketEntry) error {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
+
 	if bucketEntry == nil {
 		return fmt.Errorf("nil bucket entry")
 	}
@@ -242,6 +275,8 @@ func (s *storagePacker) Put(bucketEntry *storageBucketEntry) error {
 // GetItem fetches the storage entry for a given key from its corresponding
 // bucket.
 func (s *storagePacker) GetItem(entityID string) (*entityStorageEntry, error) {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
+
 	if entityID == "" {
 		return nil, fmt.Errorf("empty entity ID")
 	}
@@ -267,6 +302,8 @@ func (s *storagePacker) GetItem(entityID string) (*entityStorageEntry, error) {
 
 // PutItem stores a storage entry in its corresponding bucket
 func (s *storagePacker) PutItem(entity *entityStorageEntry) error {
+	s.configPersist.Do(s.persistPackerConfigOnceFunc)
+
 	if entity == nil {
 		return fmt.Errorf("nil entity")
 	}
@@ -343,8 +380,8 @@ func NewStoragePacker(view logical.Storage, config *storagePackerConfig, logger 
 	}
 
 	// Currently, only bucket count of 256 is supported
-	if config.NumBuckets != 256 {
-		config.NumBuckets = 256
+	if config.NumBuckets != bucketCount {
+		config.NumBuckets = bucketCount
 	}
 
 	// When prefix is not set, assign a default prefix so that all the
@@ -393,26 +430,6 @@ func NewStoragePacker(view logical.Storage, config *storagePackerConfig, logger 
 		// Override the config values with the ones that were persisted
 		packer.config.NumBuckets = configEntry.NumBuckets
 		packer.config.ViewPrefix = configEntry.ViewPrefix
-	} else {
-		// This is a new configuration
-		packer.config.NumBuckets = bucketCount
-
-		// Prepare the values that needs to get persisted
-		configStorageEntry := &configStorageEntry{
-			NumBuckets: packer.config.NumBuckets,
-			ViewPrefix: packer.config.ViewPrefix,
-		}
-
-		entry, err := logical.StorageEntryJSON(config.Location, configStorageEntry)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create storage entry for storage packer properties: %v", err)
-		}
-
-		// Persist the packer config properties
-		err = packer.view.Put(entry)
-		if err != nil {
-			return nil, fmt.Errorf("failed to persist storage packer properties: %v", err)
-		}
 	}
 
 	return packer, nil

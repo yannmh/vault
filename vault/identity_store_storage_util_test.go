@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/logical"
+	log "github.com/mgutz/logxi/v1"
 )
 
 func TestIdentityStore_StorageUtil(t *testing.T) {
-	storagePacker, err := NewStoragePacker(&logical.InmemStorage{}, nil)
+	storagePacker, err := NewStoragePacker(&logical.InmemStorage{}, nil, log.New("storagepackertest"))
 	if err != nil {
 		t.Fatal(err)
 	}
