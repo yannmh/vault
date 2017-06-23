@@ -31,7 +31,7 @@ func NewIdentityStore(core *Core, config *logical.BackendConfig) (*identityStore
 		ViewPrefix: "entities/",
 	}
 
-	iStore.storagePacker, err = NewStoragePacker(iStore.view, packerConfig)
+	iStore.storagePacker, err = NewStoragePacker(iStore.view, packerConfig, iStore.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage buckets for identity store: %v", err)
 	}

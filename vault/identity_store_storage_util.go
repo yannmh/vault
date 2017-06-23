@@ -11,6 +11,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/logical"
+	log "github.com/mgutz/logxi/v1"
 )
 
 const (
@@ -26,6 +27,7 @@ type storagePacker struct {
 	config   *storagePackerConfig
 	view     logical.Storage
 	hashLock sync.RWMutex
+	logger   log.Logger
 }
 
 // storagePackerConfig specifies the properties of the packer
@@ -323,7 +325,7 @@ func (s *storagePacker) PutItem(entity *entityStorageEntry) error {
 // persisted across reboots. If a persisted configuration is found for a given
 // location, certain properties which are immutable will be enforced and
 // attempts to update it will result in an error.
-func NewStoragePacker(view logical.Storage, config *storagePackerConfig) (*storagePacker, error) {
+func NewStoragePacker(view logical.Storage, config *storagePackerConfig, logger log.Logger) (*storagePacker, error) {
 	if view == nil {
 		return nil, fmt.Errorf("nil view")
 	}
@@ -360,6 +362,7 @@ func NewStoragePacker(view logical.Storage, config *storagePackerConfig) (*stora
 	packer := &storagePacker{
 		config: config,
 		view:   view,
+		logger: logger,
 	}
 
 	// Check if there was a configuration which was persisted earlier in the
