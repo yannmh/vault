@@ -43,6 +43,9 @@ func NewIdentityStore(core *Core, config *logical.BackendConfig) (*identityStore
 		),
 	}
 
+	// Not setting iStore.Invalidate here because there is no storage path
+	// at the moment which affects the state of identity store.
+
 	_, err = iStore.Setup(config)
 	if err != nil {
 		return nil, err
