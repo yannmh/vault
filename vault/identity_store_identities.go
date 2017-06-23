@@ -10,122 +10,122 @@ import (
 	"github.com/hashicorp/vault/logical/framework"
 )
 
-// identityPaths returns the API endpoints to operate on identities.
+// personaPaths returns the API endpoints to operate on personae.
 // Following are the paths supported:
-// identity - To register/modify an identity
-// identity/id - To lookup, delete and list identities based on ID
-func identityPaths(i *identityStore) []*framework.Path {
+// persona - To register/modify a persona
+// persona/id - To lookup, delete and list personae based on ID
+func personaPaths(i *identityStore) []*framework.Path {
 	return []*framework.Path{
 		{
-			Pattern: "identity",
+			Pattern: "persona",
 			Fields: map[string]*framework.FieldSchema{
 				"entity_id": {
 					Type:        framework.TypeString,
-					Description: "Entity ID to which this identity belongs to",
+					Description: "Entity ID to which this persona belongs to",
 				},
 				"mount_path": {
 					Type:        framework.TypeString,
-					Description: "Mount path to which this identity belongs to",
+					Description: "Mount path to which this persona belongs to",
 				},
 				"name": {
 					Type:        framework.TypeString,
-					Description: "Name of the identity",
+					Description: "Name of the persona",
 				},
 				"metadata": {
 					Type:        framework.TypeStringSlice,
-					Description: "Metadata to be associated with the identity. Format should be a comma separated list of `key=value` pairs.",
+					Description: "Metadata to be associated with the persona. Format should be a comma separated list of `key=value` pairs.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: i.pathIdentityRegister,
+				logical.UpdateOperation: i.pathPersonaRegister,
 			},
 
-			HelpSynopsis:    strings.TrimSpace(identityHelp["identity"][0]),
-			HelpDescription: strings.TrimSpace(identityHelp["identity"][1]),
+			HelpSynopsis:    strings.TrimSpace(personaHelp["persona"][0]),
+			HelpDescription: strings.TrimSpace(personaHelp["persona"][1]),
 		},
 		{
-			Pattern: "identity/id/" + framework.GenericNameRegex("id"),
+			Pattern: "persona/id/" + framework.GenericNameRegex("id"),
 			Fields: map[string]*framework.FieldSchema{
 				"id": {
 					Type:        framework.TypeString,
-					Description: "ID of the identity",
+					Description: "ID of the persona",
 				},
 				"entity_id": {
 					Type:        framework.TypeString,
-					Description: "Entity ID to which this identity should be tied to",
+					Description: "Entity ID to which this persona should be tied to",
 				},
 				"mount_path": {
 					Type:        framework.TypeString,
-					Description: "Mount path to which this identity belongs to",
+					Description: "Mount path to which this persona belongs to",
 				},
 				"name": {
 					Type:        framework.TypeString,
-					Description: "Name of the identity",
+					Description: "Name of the persona",
 				},
 				"metadata": {
 					Type:        framework.TypeStringSlice,
-					Description: "Metadata to be associated with the identity. Format should be a comma separated list of `key=value` pairs.",
+					Description: "Metadata to be associated with the persona. Format should be a comma separated list of `key=value` pairs.",
 				},
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.UpdateOperation: i.pathIdentityIDUpdate,
-				logical.ReadOperation:   i.pathIdentityIDRead,
-				logical.DeleteOperation: i.pathIdentityIDDelete,
+				logical.UpdateOperation: i.pathPersonaIDUpdate,
+				logical.ReadOperation:   i.pathPersonaIDRead,
+				logical.DeleteOperation: i.pathPersonaIDDelete,
 			},
 
-			HelpSynopsis:    strings.TrimSpace(identityHelp["identity-id"][0]),
-			HelpDescription: strings.TrimSpace(identityHelp["identity-id"][1]),
+			HelpSynopsis:    strings.TrimSpace(personaHelp["persona-id"][0]),
+			HelpDescription: strings.TrimSpace(personaHelp["persona-id"][1]),
 		},
 		{
-			Pattern: "identity/id/?$",
+			Pattern: "persona/id/?$",
 			Callbacks: map[logical.Operation]framework.OperationFunc{
-				logical.ListOperation: i.pathIdentityIDList,
+				logical.ListOperation: i.pathPersonaIDList,
 			},
 
-			HelpSynopsis:    strings.TrimSpace(identityHelp["identity-id-list"][0]),
-			HelpDescription: strings.TrimSpace(identityHelp["identity-id-list"][1]),
+			HelpSynopsis:    strings.TrimSpace(personaHelp["persona-id-list"][0]),
+			HelpDescription: strings.TrimSpace(personaHelp["persona-id-list"][1]),
 		},
 	}
 }
 
-// pathIdentityRegister is used to register new identity
-func (i *identityStore) pathIdentityRegister(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	return i.handleIdentityUpdateCommon(req, d, nil)
+// pathPersonaRegister is used to register new persona
+func (i *identityStore) pathPersonaRegister(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	return i.handlePersonaUpdateCommon(req, d, nil)
 }
 
-// pathIdentityIDUpdate is used to update an identity based on the given
-// identity ID
-func (i *identityStore) pathIdentityIDUpdate(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	// Get identity id
-	identityID := d.Get("id").(string)
+// pathPersonaIDUpdate is used to update a persona based on the given
+// persona ID
+func (i *identityStore) pathPersonaIDUpdate(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	// Get persona id
+	personaID := d.Get("id").(string)
 
-	if identityID == "" {
-		return logical.ErrorResponse("missing identity id"), nil
+	if personaID == "" {
+		return logical.ErrorResponse("missing persona id"), nil
 	}
 
-	identity, err := i.memDBIdentityByID(identityID)
+	persona, err := i.memDBPersonaByID(personaID)
 	if err != nil {
 		return nil, err
 	}
-	if identity == nil {
-		return logical.ErrorResponse("invalid identity id"), nil
+	if persona == nil {
+		return logical.ErrorResponse("invalid persona id"), nil
 	}
 
-	return i.handleIdentityUpdateCommon(req, d, identity)
+	return i.handlePersonaUpdateCommon(req, d, persona)
 }
 
-// handleIdentityUpdateCommon is used to update an identity
-func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *framework.FieldData, identity *identityIndexEntry) (*logical.Response, error) {
+// handlePersonaUpdateCommon is used to update a persona
+func (i *identityStore) handlePersonaUpdateCommon(req *logical.Request, d *framework.FieldData, persona *personaIndexEntry) (*logical.Response, error) {
 	var err error
-	var newIdentity bool
+	var newPersona bool
 	var entity *entityStorageEntry
 	var previousEntity *entityStorageEntry
 
-	// Identity will be nil when a new identity is being registered; create a
+	// Persona will be nil when a new persona is being registered; create a
 	// new struct in that case.
-	if identity == nil {
-		identity = &identityIndexEntry{}
-		newIdentity = true
+	if persona == nil {
+		persona = &personaIndexEntry{}
+		newPersona = true
 	}
 
 	// Get entity id
@@ -140,28 +140,28 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 		}
 	}
 
-	// Get identity name
-	identityName := d.Get("name").(string)
-	if identityName == "" {
-		return logical.ErrorResponse("missing identity name"), nil
+	// Get persona name
+	personaName := d.Get("name").(string)
+	if personaName == "" {
+		return logical.ErrorResponse("missing persona name"), nil
 	}
 
-	// Get mount path to which the identity belongs to
+	// Get mount path to which the persona belongs to
 	mountPath := d.Get("mount_path").(string)
 	if mountPath == "" {
 		return logical.ErrorResponse("missing mount path"), nil
 	}
 
-	// Get identity metadata
+	// Get persona metadata
 
 	// Accept metadata in the form of map[string]string to be able to index on
 	// it
-	var identityMetadata map[string]string
-	identityMetadataRaw, ok := d.GetOk("metadata")
+	var personaMetadata map[string]string
+	personaMetadataRaw, ok := d.GetOk("metadata")
 	if ok {
-		identityMetadata, err = i.parseMetadata(identityMetadataRaw.([]string))
+		personaMetadata, err = i.parseMetadata(personaMetadataRaw.([]string))
 		if err != nil {
-			return logical.ErrorResponse(fmt.Sprintf("failed to parse identity metadata: %v", err)), nil
+			return logical.ErrorResponse(fmt.Sprintf("failed to parse persona metadata: %v", err)), nil
 		}
 	}
 
@@ -170,52 +170,52 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 		return logical.ErrorResponse(fmt.Sprintf("invalid mount path %q", mountPath)), nil
 	}
 
-	identityByFactors, err := i.memDBIdentityByFactors(mountValidationResp.MountID, identityName)
+	personaByFactors, err := i.memDBPersonaByFactors(mountValidationResp.MountID, personaName)
 	if err != nil {
 		return nil, err
 	}
 
-	if newIdentity {
-		if identityByFactors != nil {
-			return logical.ErrorResponse("combination of mount path and identity name is already in use"), nil
+	if newPersona {
+		if personaByFactors != nil {
+			return logical.ErrorResponse("combination of mount path and persona name is already in use"), nil
 		}
 
-		// If this is an identity being tied to a non-existent entity, create
+		// If this is a persona being tied to a non-existent entity, create
 		// a new entity for it.
 		if entity == nil {
 			entity = &entityStorageEntry{
-				Identities: []*identityIndexEntry{
-					identity,
+				Personae: []*personaIndexEntry{
+					persona,
 				},
 			}
 		} else {
-			entity.Identities = append(entity.Identities, identity)
+			entity.Personae = append(entity.Personae, persona)
 		}
 	} else {
-		// Verify that the combination of identity name and mount path is not
-		// already tied to a different identity
-		if identityByFactors != nil && identityByFactors.ID != identity.ID {
-			return logical.ErrorResponse("combination of mount path and identity name is already in use"), nil
+		// Verify that the combination of persona name and mount path is not
+		// already tied to a different persona
+		if personaByFactors != nil && personaByFactors.ID != persona.ID {
+			return logical.ErrorResponse("combination of mount path and persona name is already in use"), nil
 		}
 
-		// Fetch the entity to which the identity is tied to
-		existingEntity, err := i.memDBEntityByIdentityID(identity.ID)
+		// Fetch the entity to which the persona is tied to
+		existingEntity, err := i.memDBEntityByPersonaID(persona.ID)
 		if err != nil {
 			return nil, err
 		}
 
 		if existingEntity == nil {
-			return nil, fmt.Errorf("identity is not associated with an entity")
+			return nil, fmt.Errorf("persona is not associated with an entity")
 		}
 
 		if entity != nil && entity.ID != existingEntity.ID {
-			// Identity should be transferred from 'existingEntity' to 'entity'
-			i.deleteIdentityFromEntity(existingEntity, identity)
+			// Persona should be transferred from 'existingEntity' to 'entity'
+			i.deletePersonaFromEntity(existingEntity, persona)
 			previousEntity = existingEntity
-			entity.Identities = append(entity.Identities, identity)
+			entity.Personae = append(entity.Personae, persona)
 		} else {
-			// Update entity with modified identity
-			err = i.updateIdentityInEntity(existingEntity, identity)
+			// Update entity with modified persona
+			err = i.updatePersonaInEntity(existingEntity, persona)
 			if err != nil {
 				return nil, err
 			}
@@ -232,23 +232,23 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 	}
 
 	// Update the fields
-	identity.Name = identityName
-	identity.Metadata = identityMetadata
-	identity.MountID = mountValidationResp.MountID
-	identity.MountType = mountValidationResp.MountType
+	persona.Name = personaName
+	persona.Metadata = personaMetadata
+	persona.MountID = mountValidationResp.MountID
+	persona.MountType = mountValidationResp.MountType
 
-	// Set the entity ID in the identity index. This should be done after
+	// Set the entity ID in the persona index. This should be done after
 	// sanitizing entity.
-	identity.EntityID = entity.ID
+	persona.EntityID = entity.ID
 
 	// ID creation and other validations
-	err = i.sanitizeIdentity(identity)
+	err = i.sanitizePersona(persona)
 	if err != nil {
 		return nil, err
 	}
 
-	// Index entity and its identities in MemDB and persist entity along with
-	// identities in storage. If the identity is being transferred over from
+	// Index entity and its personae in MemDB and persist entity along with
+	// personae in storage. If the persona is being transferred over from
 	// one entity to another, previous entity needs to get refreshed in MemDB
 	// and persisted in storage as well.
 	err = i.upsertEntity(entity, previousEntity, true)
@@ -256,29 +256,29 @@ func (i *identityStore) handleIdentityUpdateCommon(req *logical.Request, d *fram
 		return nil, err
 	}
 
-	// Return ID of both identity and entity
+	// Return ID of both persona and entity
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"id":        identity.ID,
+			"id":        persona.ID,
 			"entity_id": entity.ID,
 		},
 	}, nil
 }
 
-// pathIdentityIDRead returns the properties of an identity for a given
-// identity ID
-func (i *identityStore) pathIdentityIDRead(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	identityID := d.Get("id").(string)
-	if identityID == "" {
-		return logical.ErrorResponse("missing identity id"), nil
+// pathPersonaIDRead returns the properties of a persona for a given
+// persona ID
+func (i *identityStore) pathPersonaIDRead(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	personaID := d.Get("id").(string)
+	if personaID == "" {
+		return logical.ErrorResponse("missing persona id"), nil
 	}
 
-	identity, err := i.memDBIdentityByID(identityID)
+	persona, err := i.memDBPersonaByID(personaID)
 	if err != nil {
 		return nil, err
 	}
 
-	if identity == nil {
+	if persona == nil {
 		return nil, nil
 	}
 
@@ -286,51 +286,51 @@ func (i *identityStore) pathIdentityIDRead(req *logical.Request, d *framework.Fi
 	// ignores the field while creating map. This behaviour should be retained
 	// if the code here changes.
 	return &logical.Response{
-		Data: structs.New(identity).Map(),
+		Data: structs.New(persona).Map(),
 	}, nil
 }
 
-// pathIdentityIDDelete deleted the identity for a given identity ID
-func (i *identityStore) pathIdentityIDDelete(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	identityID := d.Get("id").(string)
-	if identityID == "" {
-		return logical.ErrorResponse("missing identity id"), nil
+// pathPersonaIDDelete deleted the persona for a given persona ID
+func (i *identityStore) pathPersonaIDDelete(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	personaID := d.Get("id").(string)
+	if personaID == "" {
+		return logical.ErrorResponse("missing persona id"), nil
 	}
 
-	return nil, i.deleteIdentity(identityID)
+	return nil, i.deletePersona(personaID)
 }
 
-// pathIdentityIDList lists the IDs of all the valid identities in the identity
+// pathPersonaIDList lists the IDs of all the valid personae in the identity
 // store
-func (i *identityStore) pathIdentityIDList(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (i *identityStore) pathPersonaIDList(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ws := memdb.NewWatchSet()
-	iter, err := i.memDBIdentities(ws)
+	iter, err := i.memDBPersonae(ws)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch iterator for identities in memdb: %v", err)
+		return nil, fmt.Errorf("failed to fetch iterator for personae in memdb: %v", err)
 	}
 
-	var identityIDs []string
+	var personaIDs []string
 	for {
 		raw := iter.Next()
 		if raw == nil {
 			break
 		}
-		identityIDs = append(identityIDs, raw.(*identityIndexEntry).ID)
+		personaIDs = append(personaIDs, raw.(*personaIndexEntry).ID)
 	}
 
-	return logical.ListResponse(identityIDs), nil
+	return logical.ListResponse(personaIDs), nil
 }
 
-var identityHelp = map[string][2]string{
-	"identity": {
-		"Create a new identity",
+var personaHelp = map[string][2]string{
+	"persona": {
+		"Create a new persona",
 		"",
 	},
-	"identity-id": {
-		"Update, read or delete an entity using identity ID",
+	"persona-id": {
+		"Update, read or delete an entity using persona ID",
 		"",
 	},
-	"identity-id-list": {
+	"persona-id-list": {
 		"List all the entity IDs",
 		"",
 	},

@@ -148,7 +148,7 @@ func (i *identityStore) loadEntities() error {
 
 // upsertEntity either creates or updates an existing entity. The operations
 // will be updated in both MemDB and storage. If 'persist' is set to false,
-// then storage will not be updated. When an identity is transferred from one
+// then storage will not be updated. When a persona is transferred from one
 // entity to another, both the source and destination entities should get
 // updated, in which case, callers should send in both entity and
 // previousEntity.
@@ -164,23 +164,23 @@ func (i *identityStore) upsertEntity(entity *entityStorageEntry, previousEntity 
 	lock.Lock()
 	defer lock.Unlock()
 
-	// Create a MemDB transaction to update both identity and entity
+	// Create a MemDB transaction to update both persona and entity
 	txn := i.db.Txn(true)
 	defer txn.Abort()
 
-	for _, identity := range entity.Identities {
-		// Verify that identity is not associated to a different one already
-		identityByFactors, err := i.memDBIdentityByFactors(identity.MountID, identity.Name)
+	for _, persona := range entity.Personae {
+		// Verify that persona is not associated to a different one already
+		personaByFactors, err := i.memDBPersonaByFactors(persona.MountID, persona.Name)
 		if err != nil {
 			return err
 		}
 
-		if identityByFactors != nil && identityByFactors.EntityID != entity.ID {
-			return fmt.Errorf("identity %q in already tied to a different entity %q", identity.ID, entity.ID, identityByFactors.EntityID)
+		if personaByFactors != nil && personaByFactors.EntityID != entity.ID {
+			return fmt.Errorf("persona %q in already tied to a different entity %q", persona.ID, entity.ID, personaByFactors.EntityID)
 		}
 
-		// Insert or update identity in MemDB using the transaction created above
-		err = i.memDBUpsertIdentityInTxn(txn, identity)
+		// Insert or update persona in MemDB using the transaction created above
+		err = i.memDBUpsertPersonaInTxn(txn, persona)
 		if err != nil {
 			return err
 		}
@@ -260,9 +260,9 @@ func (i *identityStore) deleteEntity(entityID string) error {
 		return nil
 	}
 
-	// Delete all the identities in the entity. This function will also remove
-	// the corresponding identity indexes too.
-	err = i.deleteIdentitiesInEntityInTxn(txn, entity, entity.Identities)
+	// Delete all the personae in the entity. This function will also remove
+	// the corresponding persona indexes too.
+	err = i.deletePersonaeInEntityInTxn(txn, entity, entity.Personae)
 	if err != nil {
 		return err
 	}
@@ -285,39 +285,39 @@ func (i *identityStore) deleteEntity(entityID string) error {
 	return nil
 }
 
-func (i *identityStore) deleteIdentity(identityID string) error {
+func (i *identityStore) deletePersona(personaID string) error {
 	var err error
-	var identity *identityIndexEntry
+	var persona *personaIndexEntry
 	var entity *entityStorageEntry
 
-	if identityID == "" {
-		return fmt.Errorf("missing identity id")
+	if personaID == "" {
+		return fmt.Errorf("missing persona id")
 	}
 
 	// Since an entity ID is required to acquire the lock to modify the
 	// storage, fetch the entity without acquiring the lock
 
-	// Fetch the identity using its ID
+	// Fetch the persona using its ID
 
-	identity, err = i.memDBIdentityByID(identityID)
+	persona, err = i.memDBPersonaByID(personaID)
 	if err != nil {
 		return err
 	}
 
-	// If there is no identity for the ID, do nothing
-	if identity == nil {
+	// If there is no persona for the ID, do nothing
+	if persona == nil {
 		return nil
 	}
 
-	// Find the entity to which the identity is tied to
-	lockEntity, err := i.memDBEntityByIdentityID(identity.ID)
+	// Find the entity to which the persona is tied to
+	lockEntity, err := i.memDBEntityByPersonaID(persona.ID)
 	if err != nil {
 		return err
 	}
 
-	// If there is no entity tied to a valid identity, something is wrong
+	// If there is no entity tied to a valid persona, something is wrong
 	if lockEntity == nil {
-		return fmt.Errorf("identity not associated to an entity")
+		return fmt.Errorf("persona not associated to an entity")
 	}
 
 	// Acquire the lock to modify the entity storage entry
@@ -329,28 +329,28 @@ func (i *identityStore) deleteIdentity(identityID string) error {
 	txn := i.db.Txn(true)
 	defer txn.Abort()
 
-	// Fetch the identity again after acquiring the lock using the transaction
+	// Fetch the persona again after acquiring the lock using the transaction
 	// created above
-	identity, err = i.memDBIdentityByIDInTxn(txn, identityID)
+	persona, err = i.memDBPersonaByIDInTxn(txn, personaID)
 	if err != nil {
 		return err
 	}
 
-	// If there is no identity for the ID, do nothing
-	if identity == nil {
+	// If there is no persona for the ID, do nothing
+	if persona == nil {
 		return nil
 	}
 
 	// Fetch the entity again after acquiring the lock using the transaction
 	// created above
-	entity, err = i.memDBEntityByIdentityIDInTxn(txn, identity.ID)
+	entity, err = i.memDBEntityByPersonaIDInTxn(txn, persona.ID)
 	if err != nil {
 		return err
 	}
 
-	// If there is no entity tied to a valid identity, something is wrong
+	// If there is no entity tied to a valid persona, something is wrong
 	if entity == nil {
-		return fmt.Errorf("identity not associated to an entity")
+		return fmt.Errorf("persona not associated to an entity")
 	}
 
 	// Lock switching should not end up in this code pointing to different
@@ -359,12 +359,12 @@ func (i *identityStore) deleteIdentity(identityID string) error {
 		return fmt.Errorf("operating on an entity to which the lock doesn't belong to")
 	}
 
-	identities := []*identityIndexEntry{
-		identity,
+	personae := []*personaIndexEntry{
+		persona,
 	}
 
-	// Delete identity from the entity object
-	err = i.deleteIdentitiesInEntityInTxn(txn, entity, identities)
+	// Delete persona from the entity object
+	err = i.deletePersonaeInEntityInTxn(txn, entity, personae)
 	if err != nil {
 		return err
 	}
@@ -388,43 +388,43 @@ func (i *identityStore) deleteIdentity(identityID string) error {
 	return nil
 }
 
-func (i *identityStore) memDBUpsertIdentityInTxn(txn *memdb.Txn, identity *identityIndexEntry) error {
+func (i *identityStore) memDBUpsertPersonaInTxn(txn *memdb.Txn, persona *personaIndexEntry) error {
 	if txn == nil {
 		return fmt.Errorf("nil txn")
 	}
 
-	if identity == nil {
-		return fmt.Errorf("identity is nil")
+	if persona == nil {
+		return fmt.Errorf("persona is nil")
 	}
 
-	identityRaw, err := txn.First("identities", "id", identity.ID)
+	personaRaw, err := txn.First("personae", "id", persona.ID)
 	if err != nil {
-		return fmt.Errorf("failed to lookup identity from memdb using identity id: %v", err)
+		return fmt.Errorf("failed to lookup persona from memdb using persona id: %v", err)
 	}
 
-	if identityRaw != nil {
-		err = txn.Delete("identities", identityRaw)
+	if personaRaw != nil {
+		err = txn.Delete("personae", personaRaw)
 		if err != nil {
-			return fmt.Errorf("failed to delete identity from memdb: %v", err)
+			return fmt.Errorf("failed to delete persona from memdb: %v", err)
 		}
 	}
 
-	if err := txn.Insert("identities", identity); err != nil {
-		return fmt.Errorf("failed to update identity into memdb: %v", err)
+	if err := txn.Insert("personae", persona); err != nil {
+		return fmt.Errorf("failed to update persona into memdb: %v", err)
 	}
 
 	return nil
 }
 
-func (i *identityStore) memDBUpsertIdentity(identity *identityIndexEntry) error {
-	if identity == nil {
-		return fmt.Errorf("identity is nil")
+func (i *identityStore) memDBUpsertPersona(persona *personaIndexEntry) error {
+	if persona == nil {
+		return fmt.Errorf("persona is nil")
 	}
 
 	txn := i.db.Txn(true)
 	defer txn.Abort()
 
-	err := i.memDBUpsertIdentityInTxn(txn, identity)
+	err := i.memDBUpsertPersonaInTxn(txn, persona)
 	if err != nil {
 		return err
 	}
@@ -434,7 +434,7 @@ func (i *identityStore) memDBUpsertIdentity(identity *identityIndexEntry) error 
 	return nil
 }
 
-func (i *identityStore) memDBIdentityByEntityIDInTxn(txn *memdb.Txn, entityID string) (*identityIndexEntry, error) {
+func (i *identityStore) memDBPersonaByEntityIDInTxn(txn *memdb.Txn, entityID string) (*personaIndexEntry, error) {
 	if entityID == "" {
 		return nil, fmt.Errorf("missing entity id")
 	}
@@ -443,72 +443,72 @@ func (i *identityStore) memDBIdentityByEntityIDInTxn(txn *memdb.Txn, entityID st
 		return nil, fmt.Errorf("txn is nil")
 	}
 
-	identityRaw, err := txn.First("identities", "entity_id", entityID)
+	personaRaw, err := txn.First("personae", "entity_id", entityID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch identity from memdb using entity id: %v", err)
+		return nil, fmt.Errorf("failed to fetch persona from memdb using entity id: %v", err)
 	}
 
-	if identityRaw == nil {
+	if personaRaw == nil {
 		return nil, nil
 	}
 
-	identity, ok := identityRaw.(*identityIndexEntry)
+	persona, ok := personaRaw.(*personaIndexEntry)
 	if !ok {
-		return nil, fmt.Errorf("failed to declare the type of fetched identity")
+		return nil, fmt.Errorf("failed to declare the type of fetched persona")
 	}
 
-	return identity, nil
+	return persona, nil
 }
 
-func (i *identityStore) memDBIdentityByEntityID(entityID string) (*identityIndexEntry, error) {
+func (i *identityStore) memDBPersonaByEntityID(entityID string) (*personaIndexEntry, error) {
 	if entityID == "" {
 		return nil, fmt.Errorf("missing entity id")
 	}
 
 	txn := i.db.Txn(false)
 
-	return i.memDBIdentityByEntityIDInTxn(txn, entityID)
+	return i.memDBPersonaByEntityIDInTxn(txn, entityID)
 }
 
-func (i *identityStore) memDBIdentityByIDInTxn(txn *memdb.Txn, identityID string) (*identityIndexEntry, error) {
-	if identityID == "" {
-		return nil, fmt.Errorf("missing identity id")
+func (i *identityStore) memDBPersonaByIDInTxn(txn *memdb.Txn, personaID string) (*personaIndexEntry, error) {
+	if personaID == "" {
+		return nil, fmt.Errorf("missing persona id")
 	}
 
 	if txn == nil {
 		return nil, fmt.Errorf("txn is nil")
 	}
 
-	identityRaw, err := txn.First("identities", "id", identityID)
+	personaRaw, err := txn.First("personae", "id", personaID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch identity from memdb using identity id: %v", err)
+		return nil, fmt.Errorf("failed to fetch persona from memdb using persona id: %v", err)
 	}
 
-	if identityRaw == nil {
+	if personaRaw == nil {
 		return nil, nil
 	}
 
-	identity, ok := identityRaw.(*identityIndexEntry)
+	persona, ok := personaRaw.(*personaIndexEntry)
 	if !ok {
-		return nil, fmt.Errorf("failed to declare the type of fetched identity")
+		return nil, fmt.Errorf("failed to declare the type of fetched persona")
 	}
 
-	return identity, nil
+	return persona, nil
 }
 
-func (i *identityStore) memDBIdentityByID(identityID string) (*identityIndexEntry, error) {
-	if identityID == "" {
-		return nil, fmt.Errorf("missing identity id")
+func (i *identityStore) memDBPersonaByID(personaID string) (*personaIndexEntry, error) {
+	if personaID == "" {
+		return nil, fmt.Errorf("missing persona id")
 	}
 
 	txn := i.db.Txn(false)
 
-	return i.memDBIdentityByIDInTxn(txn, identityID)
+	return i.memDBPersonaByIDInTxn(txn, personaID)
 }
 
-func (i *identityStore) memDBIdentityByFactors(mountID, identityName string) (*identityIndexEntry, error) {
-	if identityName == "" {
-		return nil, fmt.Errorf("missing identity name")
+func (i *identityStore) memDBPersonaByFactors(mountID, personaName string) (*personaIndexEntry, error) {
+	if personaName == "" {
+		return nil, fmt.Errorf("missing persona name")
 	}
 
 	if mountID == "" {
@@ -516,24 +516,24 @@ func (i *identityStore) memDBIdentityByFactors(mountID, identityName string) (*i
 	}
 
 	txn := i.db.Txn(false)
-	identityRaw, err := txn.First("identities", "factors", mountID, identityName)
+	personaRaw, err := txn.First("personae", "factors", mountID, personaName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch identity from memdb using factors: %v", err)
+		return nil, fmt.Errorf("failed to fetch persona from memdb using factors: %v", err)
 	}
 
-	if identityRaw == nil {
+	if personaRaw == nil {
 		return nil, nil
 	}
 
-	identity, ok := identityRaw.(*identityIndexEntry)
+	persona, ok := personaRaw.(*personaIndexEntry)
 	if !ok {
-		return nil, fmt.Errorf("failed to declare the type of fetched identity")
+		return nil, fmt.Errorf("failed to declare the type of fetched persona")
 	}
 
-	return identity, nil
+	return persona, nil
 }
 
-func (i *identityStore) memDBIdentitiesByMetadata(filters map[string]string) ([]*identityIndexEntry, error) {
+func (i *identityStore) memDBPersonaeByMetadata(filters map[string]string) ([]*personaIndexEntry, error) {
 	if filters == nil {
 		return nil, fmt.Errorf("map filter is nil")
 	}
@@ -547,69 +547,69 @@ func (i *identityStore) memDBIdentitiesByMetadata(filters map[string]string) ([]
 		break
 	}
 
-	identitiesIter, err := tx.Get("identities", "metadata", args...)
+	personaeIter, err := tx.Get("personae", "metadata", args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup identities using metadata: %v", err)
+		return nil, fmt.Errorf("failed to lookup personae using metadata: %v", err)
 	}
 
-	var identities []*identityIndexEntry
-	for identity := identitiesIter.Next(); identity != nil; identity = identitiesIter.Next() {
-		i := identity.(*identityIndexEntry)
+	var personae []*personaIndexEntry
+	for persona := personaeIter.Next(); persona != nil; persona = personaeIter.Next() {
+		i := persona.(*personaIndexEntry)
 		if len(filters) <= 1 || satisfiesMetadataFilters(i.Metadata, filters) {
-			identities = append(identities, i)
+			personae = append(personae, i)
 		}
 	}
-	return identities, nil
+	return personae, nil
 }
 
-func (i *identityStore) memDBDeleteIdentityByID(identityID string) error {
-	if identityID == "" {
+func (i *identityStore) memDBDeletePersonaByID(personaID string) error {
+	if personaID == "" {
 		return nil
 	}
 
-	identity, err := i.memDBIdentityByID(identityID)
+	persona, err := i.memDBPersonaByID(personaID)
 	if err != nil {
 		return err
 	}
 
-	if identity == nil {
+	if persona == nil {
 		return nil
 	}
 
-	return i.memDBDeleteIdentity(identity)
+	return i.memDBDeletePersona(persona)
 }
 
-func (i *identityStore) memDBDeleteIdentityInTxn(txn *memdb.Txn, identity *identityIndexEntry) error {
+func (i *identityStore) memDBDeletePersonaInTxn(txn *memdb.Txn, persona *personaIndexEntry) error {
 	var err error
 
 	if txn == nil {
 		return fmt.Errorf("txn is nil")
 	}
 
-	if identity == nil {
+	if persona == nil {
 		return nil
 	}
 
-	if identity != nil {
-		err = txn.Delete("identities", identity)
+	if persona != nil {
+		err = txn.Delete("personae", persona)
 		if err != nil {
-			return fmt.Errorf("failed to delete identity from memdb: %v", err)
+			return fmt.Errorf("failed to delete persona from memdb: %v", err)
 		}
 	}
 
 	return nil
 }
 
-func (i *identityStore) memDBDeleteIdentity(identity *identityIndexEntry) error {
+func (i *identityStore) memDBDeletePersona(persona *personaIndexEntry) error {
 	var err error
-	if identity == nil {
+	if persona == nil {
 		return nil
 	}
 
 	txn := i.db.Txn(true)
 	defer txn.Abort()
 
-	err = i.memDBDeleteIdentityInTxn(txn, identity)
+	err = i.memDBDeletePersonaInTxn(txn, persona)
 	if err != nil {
 		return err
 	}
@@ -619,10 +619,10 @@ func (i *identityStore) memDBDeleteIdentity(identity *identityIndexEntry) error 
 	return nil
 }
 
-func (i *identityStore) memDBIdentities(ws memdb.WatchSet) (memdb.ResultIterator, error) {
+func (i *identityStore) memDBPersonae(ws memdb.WatchSet) (memdb.ResultIterator, error) {
 	txn := i.db.Txn(false)
 
-	iter, err := txn.Get("identities", "id")
+	iter, err := txn.Get("personae", "id")
 	if err != nil {
 		return nil, err
 	}
@@ -815,35 +815,35 @@ func (i *identityStore) memDBEntityByMergedEntityID(mergedEntityID string) (*ent
 	return i.memDBEntityByMergedEntityIDInTxn(txn, mergedEntityID)
 }
 
-func (i *identityStore) memDBEntityByIdentityIDInTxn(txn *memdb.Txn, identityID string) (*entityStorageEntry, error) {
-	if identityID == "" {
-		return nil, fmt.Errorf("missing identity id")
+func (i *identityStore) memDBEntityByPersonaIDInTxn(txn *memdb.Txn, personaID string) (*entityStorageEntry, error) {
+	if personaID == "" {
+		return nil, fmt.Errorf("missing persona id")
 	}
 
 	if txn == nil {
 		return nil, fmt.Errorf("txn is nil")
 	}
 
-	identity, err := i.memDBIdentityByIDInTxn(txn, identityID)
+	persona, err := i.memDBPersonaByIDInTxn(txn, personaID)
 	if err != nil {
 		return nil, err
 	}
 
-	if identity == nil {
+	if persona == nil {
 		return nil, nil
 	}
 
-	return i.memDBEntityByIDInTxn(txn, identity.EntityID)
+	return i.memDBEntityByIDInTxn(txn, persona.EntityID)
 }
 
-func (i *identityStore) memDBEntityByIdentityID(identityID string) (*entityStorageEntry, error) {
-	if identityID == "" {
-		return nil, fmt.Errorf("missing identity id")
+func (i *identityStore) memDBEntityByPersonaID(personaID string) (*entityStorageEntry, error) {
+	if personaID == "" {
+		return nil, fmt.Errorf("missing persona id")
 	}
 
 	txn := i.db.Txn(false)
 
-	return i.memDBEntityByIdentityIDInTxn(txn, identityID)
+	return i.memDBEntityByPersonaIDInTxn(txn, personaID)
 }
 
 func (i *identityStore) memDBDeleteEntityByID(entityID string) error {
@@ -916,43 +916,43 @@ func (i *identityStore) memDBEntities(ws memdb.WatchSet) (memdb.ResultIterator, 
 	return iter, nil
 }
 
-func (i *identityStore) sanitizeIdentity(identity *identityIndexEntry) error {
+func (i *identityStore) sanitizePersona(persona *personaIndexEntry) error {
 	var err error
 
-	if identity == nil {
-		return fmt.Errorf("identity is nil")
+	if persona == nil {
+		return fmt.Errorf("persona is nil")
 	}
 
-	// Identity must always be tied to an entity
-	if identity.EntityID == "" {
+	// Persona must always be tied to an entity
+	if persona.EntityID == "" {
 		return fmt.Errorf("missing entity id")
 	}
 
-	// Identity must have a name
-	if identity.Name == "" {
-		return fmt.Errorf("missing identity name %q", identity.Name)
+	// Persona must have a name
+	if persona.Name == "" {
+		return fmt.Errorf("missing persona name %q", persona.Name)
 	}
 
-	// Identity metadata should always be map[string]string
-	err = validateMetadata(identity.Metadata)
+	// Persona metadata should always be map[string]string
+	err = validateMetadata(persona.Metadata)
 	if err != nil {
-		return fmt.Errorf("invalid identity metadata: %v", err)
+		return fmt.Errorf("invalid persona metadata: %v", err)
 	}
 
 	// Create an ID if there isn't one already
-	if identity.ID == "" {
-		identity.ID, err = uuid.GenerateUUID()
+	if persona.ID == "" {
+		persona.ID, err = uuid.GenerateUUID()
 		if err != nil {
-			return fmt.Errorf("failed to generate identity id")
+			return fmt.Errorf("failed to generate persona id")
 		}
 	}
 
 	// Set the creation and last update times
-	if identity.CreationTime.IsZero() {
-		identity.CreationTime = time.Now()
-		identity.LastUpdateTime = identity.CreationTime
+	if persona.CreationTime.IsZero() {
+		persona.CreationTime = time.Now()
+		persona.LastUpdateTime = persona.CreationTime
 	} else {
-		identity.LastUpdateTime = time.Now()
+		persona.LastUpdateTime = time.Now()
 	}
 
 	return nil
@@ -999,7 +999,7 @@ func sanitizeEntity(entity *entityStorageEntry) error {
 	return nil
 }
 
-func (i *identityStore) deleteIdentitiesInEntityInTxn(txn *memdb.Txn, entity *entityStorageEntry, identities []*identityIndexEntry) error {
+func (i *identityStore) deletePersonaeInEntityInTxn(txn *memdb.Txn, entity *entityStorageEntry, personae []*personaIndexEntry) error {
 	if entity == nil {
 		return fmt.Errorf("entity is nil")
 	}
@@ -1008,53 +1008,53 @@ func (i *identityStore) deleteIdentitiesInEntityInTxn(txn *memdb.Txn, entity *en
 		return fmt.Errorf("txn is nil")
 	}
 
-	var remainList []*identityIndexEntry
-	var removeList []*identityIndexEntry
+	var remainList []*personaIndexEntry
+	var removeList []*personaIndexEntry
 
-	for _, item := range identities {
-		for _, identity := range entity.Identities {
-			if identity.ID == item.ID {
-				removeList = append(removeList, identity)
+	for _, item := range personae {
+		for _, persona := range entity.Personae {
+			if persona.ID == item.ID {
+				removeList = append(removeList, persona)
 			} else {
-				remainList = append(remainList, identity)
+				remainList = append(remainList, persona)
 			}
 		}
 	}
 
-	// Remove indentity indices from identities table for those that needs to
+	// Remove indentity indices from personae table for those that needs to
 	// be removed
-	for _, identity := range removeList {
-		identityToBeRemoved, err := i.memDBIdentityByIDInTxn(txn, identity.ID)
+	for _, persona := range removeList {
+		personaToBeRemoved, err := i.memDBPersonaByIDInTxn(txn, persona.ID)
 		if err != nil {
 			return err
 		}
-		if identityToBeRemoved == nil {
-			return fmt.Errorf("identity was not indexed")
+		if personaToBeRemoved == nil {
+			return fmt.Errorf("persona was not indexed")
 		}
-		err = i.memDBDeleteIdentityInTxn(txn, identityToBeRemoved)
+		err = i.memDBDeletePersonaInTxn(txn, personaToBeRemoved)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Update the entity with remaining items
-	entity.Identities = remainList
+	entity.Personae = remainList
 
 	return nil
 }
 
-func (i *identityStore) deleteIdentityFromEntity(entity *entityStorageEntry, identity *identityIndexEntry) error {
+func (i *identityStore) deletePersonaFromEntity(entity *entityStorageEntry, persona *personaIndexEntry) error {
 	if entity == nil {
 		return fmt.Errorf("entity is nil")
 	}
 
-	if identity == nil {
-		return fmt.Errorf("identity is nil")
+	if persona == nil {
+		return fmt.Errorf("persona is nil")
 	}
 
-	for identityIndex, item := range entity.Identities {
-		if item.ID == identity.ID {
-			entity.Identities = append(entity.Identities[:identityIndex], entity.Identities[identityIndex+1:]...)
+	for personaIndex, item := range entity.Personae {
+		if item.ID == persona.ID {
+			entity.Personae = append(entity.Personae[:personaIndex], entity.Personae[personaIndex+1:]...)
 			break
 		}
 	}
@@ -1062,25 +1062,25 @@ func (i *identityStore) deleteIdentityFromEntity(entity *entityStorageEntry, ide
 	return nil
 }
 
-func (i *identityStore) updateIdentityInEntity(entity *entityStorageEntry, identity *identityIndexEntry) error {
+func (i *identityStore) updatePersonaInEntity(entity *entityStorageEntry, persona *personaIndexEntry) error {
 	if entity == nil {
 		return fmt.Errorf("entity is nil")
 	}
 
-	if identity == nil {
-		return fmt.Errorf("identity is nil")
+	if persona == nil {
+		return fmt.Errorf("persona is nil")
 	}
 
-	identityFound := false
-	for identityIndex, item := range entity.Identities {
-		if item.ID == identity.ID {
-			identityFound = true
-			entity.Identities[identityIndex] = identity
+	personaFound := false
+	for personaIndex, item := range entity.Personae {
+		if item.ID == persona.ID {
+			personaFound = true
+			entity.Personae[personaIndex] = persona
 		}
 	}
 
-	if !identityFound {
-		return fmt.Errorf("identity does not exist in entity")
+	if !personaFound {
+		return fmt.Errorf("persona does not exist in entity")
 	}
 
 	return nil
@@ -1089,7 +1089,7 @@ func (i *identityStore) updateIdentityInEntity(entity *entityStorageEntry, ident
 // This function is not used currently. Leaving this here in hope that it will
 // be of use. When you are reading this, if this comment is atleast a year old,
 // delete this function.
-func (i *identityStore) memDBAssociateIdentitiesToEntityInTxn(txn *memdb.Txn, entity *entityStorageEntry, identities []*identityIndexEntry) error {
+func (i *identityStore) memDBAssociatePersonaeToEntityInTxn(txn *memdb.Txn, entity *entityStorageEntry, personae []*personaIndexEntry) error {
 	var err error
 
 	if txn == nil {
@@ -1100,59 +1100,59 @@ func (i *identityStore) memDBAssociateIdentitiesToEntityInTxn(txn *memdb.Txn, en
 		return fmt.Errorf("entity is nil")
 	}
 
-	if len(identities) == 0 {
-		return fmt.Errorf("missing identities")
+	if len(personae) == 0 {
+		return fmt.Errorf("missing personae")
 	}
 
-	newIdentities := make([]*identityIndexEntry, len(identities))
-	copy(newIdentities, identities)
+	newPersonae := make([]*personaIndexEntry, len(personae))
+	copy(newPersonae, personae)
 
-	// Verify that given identities do not already belong to other entities
-	for _, identity := range identities {
-		entityByIdentityID, err := i.memDBEntityByIdentityID(identity.ID)
+	// Verify that given personae do not already belong to other entities
+	for _, persona := range personae {
+		entityByPersonaID, err := i.memDBEntityByPersonaID(persona.ID)
 		if err != nil {
 			return err
 		}
-		if entityByIdentityID != nil && entityByIdentityID.ID != entity.ID {
-			return fmt.Errorf("identity %q is already tied to a different entity %q", identity.ID, entityByIdentityID.ID)
+		if entityByPersonaID != nil && entityByPersonaID.ID != entity.ID {
+			return fmt.Errorf("persona %q is already tied to a different entity %q", persona.ID, entityByPersonaID.ID)
 		}
 	}
 
 	// This is a N^2 algorithm. Improve later.
-	for _, oldIdentity := range entity.Identities {
+	for _, oldPersona := range entity.Personae {
 		foundIndex := -1
-		for idx, newIdentity := range identities {
-			if oldIdentity.ID == newIdentity.ID {
+		for idx, newPersona := range personae {
+			if oldPersona.ID == newPersona.ID {
 				foundIndex = idx
 			}
 		}
 
 		if foundIndex != -1 {
-			identities = append(identities[:foundIndex], identities[foundIndex+1:]...)
+			personae = append(personae[:foundIndex], personae[foundIndex+1:]...)
 			continue
 		}
 
-		identityToBeRemoved, err := i.memDBIdentityByID(oldIdentity.ID)
+		personaToBeRemoved, err := i.memDBPersonaByID(oldPersona.ID)
 		if err != nil {
 			return err
 		}
-		if identityToBeRemoved == nil {
-			return fmt.Errorf("identity was not indexed")
+		if personaToBeRemoved == nil {
+			return fmt.Errorf("persona was not indexed")
 		}
-		err = i.memDBDeleteIdentityInTxn(txn, identityToBeRemoved)
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, newIdentity := range identities {
-		err = i.memDBUpsertIdentityInTxn(txn, newIdentity)
+		err = i.memDBDeletePersonaInTxn(txn, personaToBeRemoved)
 		if err != nil {
 			return err
 		}
 	}
 
-	entity.Identities = newIdentities
+	for _, newPersona := range personae {
+		err = i.memDBUpsertPersonaInTxn(txn, newPersona)
+		if err != nil {
+			return err
+		}
+	}
+
+	entity.Personae = newPersonae
 
 	return nil
 }

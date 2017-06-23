@@ -33,7 +33,6 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Type:        framework.TypeCommaStringSlice,
 					Description: "Policies to be tied to the entity",
 				},
-				// "identities", extracted from raw field data
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
 				logical.UpdateOperation: i.pathEntityRegister,
@@ -61,7 +60,6 @@ func entityPaths(i *identityStore) []*framework.Path {
 					Type:        framework.TypeCommaStringSlice,
 					Description: "Policies to be tied to the entity",
 				},
-				// "identities", extracted from raw field data
 			},
 			Callbacks: map[logical.Operation]framework.OperationFunc{
 				logical.UpdateOperation: i.pathEntityIDUpdate,
@@ -186,25 +184,25 @@ func (i *identityStore) pathEntityMergeID(req *logical.Request, d *framework.Fie
 			return logical.ErrorResponse("acquired lock for an undesired entity"), nil
 		}
 
-		for _, identity := range fromEntity.Identities {
-			// Special case the identities that gets transfered over due to merge
+		for _, persona := range fromEntity.Personae {
+			// Special case the personae that gets transfered over due to merge
 			// operation. This might also aid in controlling any actions to be
-			// taken on the merged identities.
-			identity.MountType = entityAliasMountType
+			// taken on the merged personae.
+			persona.MountType = entityAliasMountType
 
 			// Set the desired entity id
-			identity.EntityID = toEntity.ID
+			persona.EntityID = toEntity.ID
 
-			// Set the entity id of which this identity is now an alias to
-			identity.MergedFrom = fromEntity.ID
+			// Set the entity id of which this persona is now an alias to
+			persona.MergedFrom = fromEntity.ID
 
-			err = i.memDBUpsertIdentityInTxn(txn, identity)
+			err = i.memDBUpsertPersonaInTxn(txn, persona)
 			if err != nil {
-				return nil, fmt.Errorf("failed to update identity during merge: %v", err)
+				return nil, fmt.Errorf("failed to update persona during merge: %v", err)
 			}
 
-			// Add the identity to the desired entity
-			toEntity.Identities = append(toEntity.Identities, identity)
+			// Add the persona to the desired entity
+			toEntity.Personae = append(toEntity.Personae, persona)
 		}
 
 		// Add the entity from which we are merging from to the list of entities
@@ -317,12 +315,12 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 		"id": entity.ID,
 	}
 
-	var identityIDs []string
-	for _, identity := range entity.Identities {
-		identityIDs = append(identityIDs, identity.ID)
+	var personaIDs []string
+	for _, persona := range entity.Personae {
+		personaIDs = append(personaIDs, persona.ID)
 	}
 
-	respData["identities"] = identityIDs
+	respData["personae"] = personaIDs
 
 	// Update MemDB and persist entity object
 	err = i.upsertEntity(entity, nil, true)
@@ -331,7 +329,7 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 	}
 
 	// Return ID of the entity that was either created or updated along with
-	// its identities
+	// its personae
 	return &logical.Response{
 		Data: respData,
 	}, nil

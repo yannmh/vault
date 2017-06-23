@@ -39,7 +39,7 @@ func NewIdentityStore(core *Core, config *logical.BackendConfig) (*identityStore
 	iStore.Backend = &framework.Backend{
 		Paths: framework.PathAppend(
 			entityPaths(iStore),
-			identityPaths(iStore),
+			personaPaths(iStore),
 		),
 	}
 
@@ -54,38 +54,38 @@ func NewIdentityStore(core *Core, config *logical.BackendConfig) (*identityStore
 	return iStore, nil
 }
 
-// EntityByIdentityFactors fetches the entity based on factors of identity, i.e mount
-// ID and the identity name.
-func (i *identityStore) EntityByIdentityFactors(mountID, identityName string) (*entityStorageEntry, error) {
+// EntityByPersonaFactors fetches the entity based on factors of persona, i.e mount
+// ID and the persona name.
+func (i *identityStore) EntityByPersonaFactors(mountID, personaName string) (*entityStorageEntry, error) {
 	if mountID == "" {
 		return nil, fmt.Errorf("missing mount id")
 	}
 
-	if identityName == "" {
-		return nil, fmt.Errorf("missing identity name")
+	if personaName == "" {
+		return nil, fmt.Errorf("missing persona name")
 	}
 
-	identity, err := i.memDBIdentityByFactors(mountID, identityName)
+	persona, err := i.memDBPersonaByFactors(mountID, personaName)
 	if err != nil {
 		return nil, err
 	}
 
-	if identity == nil {
+	if persona == nil {
 		return nil, nil
 	}
 
-	return i.memDBEntityByIdentityID(identity.ID)
+	return i.memDBEntityByPersonaID(persona.ID)
 }
 
 // CreateEntity creates a new entity. This is used by core to
-// associate each login attempt by an identity to a unified entity in Vault.
-// This method should be called *after* ensuring that the identity is not
+// associate each login attempt by a persona to a unified entity in Vault.
+// This method should be called *after* ensuring that the persona is not
 // already tied to an entity.
-func (i *identityStore) CreateEntity(identity *logical.Identity) (*entityStorageEntry, error) {
+func (i *identityStore) CreateEntity(persona *logical.Persona) (*entityStorageEntry, error) {
 	var err error
 
-	if identity == nil {
-		return nil, fmt.Errorf("identity is nil")
+	if persona == nil {
+		return nil, fmt.Errorf("persona is nil")
 	}
 
 	entity := &entityStorageEntry{}
@@ -95,22 +95,22 @@ func (i *identityStore) CreateEntity(identity *logical.Identity) (*entityStorage
 		return nil, err
 	}
 
-	// Create a new identity
-	newIdentity := &identityIndexEntry{
+	// Create a new persona
+	newPersona := &personaIndexEntry{
 		EntityID:  entity.ID,
-		Name:      identity.Name,
-		MountType: identity.MountType,
-		MountID:   identity.MountID,
+		Name:      persona.Name,
+		MountType: persona.MountType,
+		MountID:   persona.MountID,
 	}
 
-	err = i.sanitizeIdentity(newIdentity)
+	err = i.sanitizePersona(newPersona)
 	if err != nil {
 		return nil, err
 	}
 
-	// Append the new identity to the new entity
-	entity.Identities = []*identityIndexEntry{
-		newIdentity,
+	// Append the new persona to the new entity
+	entity.Personae = []*personaIndexEntry{
+		newPersona,
 	}
 
 	// Update MemDB and persist entity object

@@ -157,24 +157,24 @@ func TestIdentityStore_MemDBEntityIndexes(t *testing.T) {
 		t.Fatal("failed to validate github auth mount")
 	}
 
-	identity1 := &identityIndexEntry{
+	persona1 := &personaIndexEntry{
 		EntityID:  "testentityid",
-		ID:        "testidentityid",
+		ID:        "testpersonaid",
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
-		Name:      "testidentityname",
+		Name:      "testpersonaname",
 		Metadata: map[string]string{
 			"testkey1": "testmetadatavalue1",
 			"testkey2": "testmetadatavalue2",
 		},
 	}
 
-	identity2 := &identityIndexEntry{
+	persona2 := &personaIndexEntry{
 		EntityID:  "testentityid",
-		ID:        "testidentityid2",
+		ID:        "testpersonaid2",
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
-		Name:      "testidentityname2",
+		Name:      "testpersonaname2",
 		Metadata: map[string]string{
 			"testkey2": "testmetadatavalue2",
 			"testkey3": "testmetadatavalue3",
@@ -187,9 +187,9 @@ func TestIdentityStore_MemDBEntityIndexes(t *testing.T) {
 		Metadata: map[string]string{
 			"someusefulkey": "someusefulvalue",
 		},
-		Identities: []*identityIndexEntry{
-			identity1,
-			identity2,
+		Personae: []*personaIndexEntry{
+			persona1,
+			persona2,
 		},
 	}
 
@@ -401,26 +401,26 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 		"metadata": []string{"someusefulkey:someusefulvalue"},
 	}
 
-	identityRegisterData1 := map[string]interface{}{
-		"name":       "testidentityname1",
+	personaRegisterData1 := map[string]interface{}{
+		"name":       "testpersonaname1",
 		"mount_path": "github",
 		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
-	identityRegisterData2 := map[string]interface{}{
-		"name":       "testidentityname2",
+	personaRegisterData2 := map[string]interface{}{
+		"name":       "testpersonaname2",
 		"mount_path": "github",
 		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
-	identityRegisterData3 := map[string]interface{}{
-		"name":       "testidentityname3",
+	personaRegisterData3 := map[string]interface{}{
+		"name":       "testpersonaname3",
 		"mount_path": "github",
 		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
-	identityRegisterData4 := map[string]interface{}{
-		"name":       "testidentityname4",
+	personaRegisterData4 := map[string]interface{}{
+		"name":       "testpersonaname4",
 		"mount_path": "github",
 		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
@@ -439,25 +439,25 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 
 	entityID1 := resp.Data["id"].(string)
 
-	// Set entity ID in identity registration data and register identity
-	identityRegisterData1["entity_id"] = entityID1
-	identityRegisterData2["entity_id"] = entityID1
+	// Set entity ID in persona registration data and register persona
+	personaRegisterData1["entity_id"] = entityID1
+	personaRegisterData2["entity_id"] = entityID1
 
-	identityReq := &logical.Request{
+	personaReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "identity",
-		Data:      identityRegisterData1,
+		Path:      "persona",
+		Data:      personaRegisterData1,
 	}
 
-	// Register the identity
-	resp, err = is.HandleRequest(identityReq)
+	// Register the persona
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 
-	// Register the identity
-	identityReq.Data = identityRegisterData2
-	resp, err = is.HandleRequest(identityReq)
+	// Register the persona
+	personaReq.Data = personaRegisterData2
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
@@ -469,8 +469,8 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	if entity1 == nil {
 		t.Fatalf("failed to create entity: %v", err)
 	}
-	if len(entity1.Identities) != 2 {
-		t.Fatalf("bad: number of identities in entity; expected: 2, actual: %d", len(entity1.Identities))
+	if len(entity1.Personae) != 2 {
+		t.Fatalf("bad: number of personae in entity; expected: 2, actual: %d", len(entity1.Personae))
 	}
 
 	registerReq.Data = registerData2
@@ -481,25 +481,25 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	}
 
 	entityID2 := resp.Data["id"].(string)
-	// Set entity ID in identity registration data and register identity
-	identityRegisterData3["entity_id"] = entityID2
-	identityRegisterData4["entity_id"] = entityID2
+	// Set entity ID in persona registration data and register persona
+	personaRegisterData3["entity_id"] = entityID2
+	personaRegisterData4["entity_id"] = entityID2
 
-	identityReq = &logical.Request{
+	personaReq = &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "identity",
-		Data:      identityRegisterData3,
+		Path:      "persona",
+		Data:      personaRegisterData3,
 	}
 
-	// Register the identity
-	resp, err = is.HandleRequest(identityReq)
+	// Register the persona
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 
-	// Register the identity
-	identityReq.Data = identityRegisterData4
-	resp, err = is.HandleRequest(identityReq)
+	// Register the persona
+	personaReq.Data = personaRegisterData4
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
@@ -512,8 +512,8 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 		t.Fatalf("failed to create entity: %v", err)
 	}
 
-	if len(entity2.Identities) != 2 {
-		t.Fatalf("bad: number of identities in entity; expected: 2, actual: %d", len(entity2.Identities))
+	if len(entity2.Personae) != 2 {
+		t.Fatalf("bad: number of personae in entity; expected: 2, actual: %d", len(entity2.Personae))
 	}
 
 	mergeData := map[string]interface{}{
@@ -551,14 +551,14 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 
 	ghMountTypeCount := 0
 	aliasMountTypeCount := 0
-	entity2Identities := resp.Data["identities"].([]interface{})
-	if len(entity2Identities) != 4 {
-		t.Fatalf("bad: number of identities in entity; expected: 4, actual: %d", len(entity2Identities))
+	entity2Personae := resp.Data["personae"].([]interface{})
+	if len(entity2Personae) != 4 {
+		t.Fatalf("bad: number of personae in entity; expected: 4, actual: %d", len(entity2Personae))
 	}
 
-	for _, identityRaw := range entity2Identities {
-		identity := identityRaw.(map[string]interface{})
-		mountType := identity["mount_type"].(string)
+	for _, personaRaw := range entity2Personae {
+		persona := personaRaw.(map[string]interface{})
+		mountType := persona["mount_type"].(string)
 		switch mountType {
 		case "github":
 			ghMountTypeCount++
@@ -568,21 +568,21 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 			t.Fatalf("invalid mount type: %q", mountType)
 		}
 
-		identityID := identity["id"].(string)
-		identityLookedUp, err := is.memDBIdentityByID(identityID)
+		personaID := persona["id"].(string)
+		personaLookedUp, err := is.memDBPersonaByID(personaID)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if identityLookedUp == nil {
-			t.Fatalf("index for identity id %q is not updated", identityID)
+		if personaLookedUp == nil {
+			t.Fatalf("index for persona id %q is not updated", personaID)
 		}
 	}
 
 	if ghMountTypeCount != 2 {
-		t.Fatalf("incorrect number of identities with mount_type github; expected: 2, actual: %d", ghMountTypeCount)
+		t.Fatalf("incorrect number of personae with mount_type github; expected: 2, actual: %d", ghMountTypeCount)
 	}
 
 	if aliasMountTypeCount != 2 {
-		t.Fatalf("incorrect number of identities with mount_type EntityAlias; expected: 2, actual: %d", aliasMountTypeCount)
+		t.Fatalf("incorrect number of personae with mount_type EntityAlias; expected: 2, actual: %d", aliasMountTypeCount)
 	}
 }

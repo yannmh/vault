@@ -56,9 +56,9 @@ type Auth struct {
 	// identity of the authenticating client belongs to.
 	EntityID string `json:"entity_id" mapstructure:"entity_id" structs:"entity_id"`
 
-	// Identity information of the authenticated client returned by the auth
-	// backend
-	Identity *Identity `json:"identity" structs:"identity" mapstructure:"identity"`
+	// Persona is the information about the authenticated client returned by
+	// the auth backend
+	Persona *Persona `json:"persona" structs:"persona" mapstructure:"persona"`
 }
 
 func (a *Auth) GoString() string {

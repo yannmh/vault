@@ -67,7 +67,7 @@ func (b *backend) pathLogin(
 				TTL:       ttl,
 				Renewable: true,
 			},
-			Identity: &logical.Identity{
+			Persona: &logical.Persona{
 				Name: *verifyResp.User.Login,
 			},
 		},

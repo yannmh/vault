@@ -70,12 +70,12 @@ type identityStore struct {
 }
 
 // entityStorageEntry represents an entity that gets persisted and indexed.
-// Entity is fundamentally composed of zero or many identities.
+// Entity is fundamentally composed of zero or many personae.
 type entityStorageEntry struct {
-	// Identities are the identities that this entity is made of. This can be
+	// Personae are the identities that this entity is made of. This can be
 	// empty as well to favor being able to create the entity first and then
-	// incrementally adding identities.
-	Identities []*identityIndexEntry `json:"identities" structs:"identities" mapstructure:"identities"`
+	// incrementally adding personae.
+	Personae []*personaIndexEntry `json:"personae" structs:"personae" mapstructure:"personae"`
 
 	// ID is the unique identifier of the entity which always be a UUID. This
 	// should never be allowed to be updated.
@@ -89,7 +89,7 @@ type entityStorageEntry struct {
 
 	// Metadata represents the explicit metadata which is set by the
 	// clients.  This is useful to tie any information pertaining to the
-	// identity. This is a non-unique field of entity, meaning multiple
+	// personae. This is a non-unique field of entity, meaning multiple
 	// entities can have the same metadata set. Entities will be indexed based
 	// on this explicit metadata. This enables virtual groupings of entities
 	// based on its metadata.
@@ -114,57 +114,57 @@ type entityStorageEntry struct {
 	Policies []string `json:"policies" structs:"policies" mapstructure:"policies"`
 }
 
-// identityInput represents the information which is accepted over the API to
-// register or modify any identity. This is different than the structure Vault
+// personaInput represents the information which is accepted over the API to
+// register or modify any persona. This is different than the structure Vault
 // populates internally for indexing.
-type identityInput struct {
+type personaInput struct {
 	Metadata  []string `json:"metadata" structs:"metadata" mapstructure:"metadata"`
 	MountPath string   `json:"mount_path" structs:"mount_path" mapstructure:"mount_path"`
 	Name      string   `json:"name" structs:"name" mapstructure:"name"`
 }
 
-// identityIndexEntry represents the identity that gets stored inside of the
+// personaIndexEntry represents the persona that gets stored inside of the
 // entity object in storage and also represents in an in-memory index of an
-// identity object.
-type identityIndexEntry struct {
-	// ID is the unique identifier that represents this identity
+// persona object.
+type personaIndexEntry struct {
+	// ID is the unique identifier that represents this persona
 	ID string `json:"id" structs:"id" mapstructure:"id"`
 
-	// EntityID is the entity identifier to which this identity belongs to
+	// EntityID is the entity identifier to which this persona belongs to
 	EntityID string `json:"entity_id" structs:"entity_id" mapstructure:"entity_id"`
 
-	// MountID is the identifier of the mount entry to which this identity
+	// MountID is the identifier of the mount entry to which this persona
 	// belongs to. This is intended to be *always* kept internal to Vault.
 	// Setting the structs tag to "-" to avoid accidentally returning it over
 	// the API.
 	MountID string `json:"mount_id" structs:"-" mapstructure:"mount_id"`
 
-	// Metadata is the explicit metadata that clients set against an
-	// entity which enables virtual grouping of identities. Identities will be
-	// indexed against their metadata.
+	// Metadata is the explicit metadata that clients set against an entity
+	// which enables virtual grouping of personae. Personae will be indexed
+	// against their metadata.
 	Metadata map[string]string `json:"metadata" structs:"metadata" mapstructure:"metadata"`
 
-	// Name is the identifier of this identity in its authentication source.
-	// This does not uniquely identify an identity in Vault. This in
-	// conjunction with MountID form to be the factors that represent an
-	// identity in a unique way. Identities will be indexed based on this
-	// combined uniqueness factor.
+	// Name is the identifier of this persona in its authentication source.
+	// This does not uniquely identify a persona in Vault. This in conjunction
+	// with MountID form to be the factors that represent a persona in a
+	// unique way. Personae will be indexed based on this combined uniqueness
+	// factor.
 	Name string `json:"name" structs:"name" mapstructure:"name"`
 
-	// MountType is the backend mount's type to which this identity belongs to.
-	// This enables categorically querying identities of specific backend
+	// MountType is the backend mount's type to which this persona belongs to.
+	// This enables categorically querying personae of specific backend
 	// types.
 	MountType string `json:"mount_type" structs:"mount_type" mapstructure:"mount_type"`
 
-	// CreationTime is the time at which this identity is first created.
+	// CreationTime is the time at which this persona was first created
 	CreationTime time.Time `json:"creation_time" structs:"creation_time" mapstructure:"creation_time"`
 
 	// LastUpdateTime is the most recent time at which the properties of this
-	// identity got modified. This is helpful in filtering out identities based
+	// persona got modified. This is helpful in filtering out personae based
 	// on its age and to take action on them, if desired.
 	LastUpdateTime time.Time `json:"last_update_time" structs:"last_update_time" mapstructure:"last_update_time"`
 
-	// MergedFrom is the identifier of the entity from which this identity is
+	// MergedFrom is the identifier of the entity from which this persona is
 	// transfered over to the entity to which it currently belongs to.
 	MergedFrom string `json:"merged_from" structs:"merged_from" mapstructure:"merged_from"`
 }

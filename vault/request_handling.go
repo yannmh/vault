@@ -382,33 +382,33 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 	if resp != nil && resp.Auth != nil {
 		auth = resp.Auth
 
-		if auth.Identity != nil {
-			// Overwrite the mount type and mount path in the identity
+		if auth.Persona != nil {
+			// Overwrite the mount type and mount path in the persona
 			// information
-			auth.Identity.MountType = req.MountType
-			auth.Identity.MountID = req.MountID
+			auth.Persona.MountType = req.MountType
+			auth.Persona.MountID = req.MountID
 
-			if auth.Identity.Name == "" {
-				return nil, nil, fmt.Errorf("missing name in identity")
+			if auth.Persona.Name == "" {
+				return nil, nil, fmt.Errorf("missing name in persona")
 			}
 
 			var entity *entityStorageEntry
 			var err error
 
-			// Check if an entity already exists for the given identity
-			entity, err = c.identityStore.EntityByIdentityFactors(auth.Identity.MountID, auth.Identity.Name)
+			// Check if an entity already exists for the given persona
+			entity, err = c.identityStore.EntityByPersonaFactors(auth.Persona.MountID, auth.Persona.Name)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			// If not, create one
 			if entity == nil {
-				entity, err = c.identityStore.CreateEntity(auth.Identity)
+				entity, err = c.identityStore.CreateEntity(auth.Persona)
 				if err != nil {
-					return nil, nil, fmt.Errorf("failed to create an entity for the authenticated identity: %v", err)
+					return nil, nil, fmt.Errorf("failed to create an entity for the authenticated persona: %v", err)
 				}
 				if entity == nil {
-					return nil, nil, fmt.Errorf("failed to create an entity for the authenticated identity")
+					return nil, nil, fmt.Errorf("failed to create an entity for the authenticated persona")
 				}
 			}
 

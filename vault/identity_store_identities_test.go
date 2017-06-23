@@ -9,39 +9,39 @@ import (
 
 // This test is required because MemDB does not take care of ensuring
 // uniqueness of indexes that are marked unique.
-func TestIdentityStore_IdentitySameIdentityNames(t *testing.T) {
+func TestIdentityStore_PersonaSamePersonaNames(t *testing.T) {
 	var err error
 	var resp *logical.Response
 	is := TestIdentityStoreWithGithubAuth(t)
 
-	identityData := map[string]interface{}{
-		"name":       "testidentityname",
+	personaData := map[string]interface{}{
+		"name":       "testpersonaname",
 		"mount_path": "github",
 	}
 
-	identityReq := &logical.Request{
+	personaReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "identity",
-		Data:      identityData,
+		Path:      "persona",
+		Data:      personaData,
 	}
 
-	// Register an identity
-	resp, err = is.HandleRequest(identityReq)
+	// Register a persona
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 
-	// Register another identity with same name
-	resp, err = is.HandleRequest(identityReq)
+	// Register another persona with same name
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp == nil || !resp.IsError() {
-		t.Fatalf("expected an error due to identity name not being unique")
+		t.Fatalf("expected an error due to persona name not being unique")
 	}
 }
 
-func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
+func TestIdentityStore_MemDBPersonaIndexes(t *testing.T) {
 	var err error
 
 	is := TestIdentityStoreWithGithubAuth(t)
@@ -64,81 +64,81 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	identity := &identityIndexEntry{
+	persona := &personaIndexEntry{
 		EntityID:  entity.ID,
-		ID:        "testidentityid",
+		ID:        "testpersonaid",
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
-		Name:      "testidentityname",
+		Name:      "testpersonaname",
 		Metadata: map[string]string{
 			"testkey1": "testmetadatavalue1",
 			"testkey2": "testmetadatavalue2",
 		},
 	}
 
-	err = is.memDBUpsertIdentity(identity)
+	err = is.memDBUpsertPersona(persona)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	identityFetched, err := is.memDBIdentityByID("testidentityid")
+	personaFetched, err := is.memDBPersonaByID("testpersonaid")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(identity, identityFetched) {
-		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
+	if !reflect.DeepEqual(persona, personaFetched) {
+		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	identityFetched, err = is.memDBIdentityByEntityID(entity.ID)
+	personaFetched, err = is.memDBPersonaByEntityID(entity.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(identity, identityFetched) {
-		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
+	if !reflect.DeepEqual(persona, personaFetched) {
+		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	identityFetched, err = is.memDBIdentityByFactors(validateMountResp.MountID, "testidentityname")
+	personaFetched, err = is.memDBPersonaByFactors(validateMountResp.MountID, "testpersonaname")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(identity, identityFetched) {
-		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
+	if !reflect.DeepEqual(persona, personaFetched) {
+		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	identitiesFetched, err := is.memDBIdentitiesByMetadata(map[string]string{
+	personaeFetched, err := is.memDBPersonaeByMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(identitiesFetched) != 1 {
-		t.Fatalf("bad: length of identities; expected: 1, actual: %d", len(identitiesFetched))
+	if len(personaeFetched) != 1 {
+		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
 	}
 
-	if !reflect.DeepEqual(identity, identitiesFetched[0]) {
-		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
+	if !reflect.DeepEqual(persona, personaeFetched[0]) {
+		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
 		"testkey2": "testmetadatavalue2",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(identitiesFetched) != 1 {
-		t.Fatalf("bad: length of identities; expected: 1, actual: %d", len(identitiesFetched))
+	if len(personaeFetched) != 1 {
+		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
 	}
 
-	if !reflect.DeepEqual(identity, identitiesFetched[0]) {
-		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
+	if !reflect.DeepEqual(persona, personaeFetched[0]) {
+		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 		"testkey2": "testmetadatavalue2",
 	})
@@ -146,65 +146,65 @@ func TestIdentityStore_MemDBIdentityIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(identitiesFetched) != 1 {
-		t.Fatalf("bad: length of identities; expected: 1, actual: %d", len(identitiesFetched))
+	if len(personaeFetched) != 1 {
+		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
 	}
 
-	if !reflect.DeepEqual(identity, identitiesFetched[0]) {
-		t.Fatalf("bad: mismatched identities; expected: %#v\n actual: %#v\n", identity, identityFetched)
+	if !reflect.DeepEqual(persona, personaeFetched[0]) {
+		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	identity2 := &identityIndexEntry{
+	persona2 := &personaIndexEntry{
 		EntityID:  entity.ID,
-		ID:        "testidentityid2",
+		ID:        "testpersonaid2",
 		MountID:   validateMountResp.MountID,
 		MountType: validateMountResp.MountType,
-		Name:      "testidentityname2",
+		Name:      "testpersonaname2",
 		Metadata: map[string]string{
 			"testkey1": "testmetadatavalue1",
 			"testkey3": "testmetadatavalue3",
 		},
 	}
 
-	err = is.memDBUpsertIdentity(identity2)
+	err = is.memDBUpsertPersona(persona2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(identitiesFetched) != 2 {
-		t.Fatalf("bad: length of identities; expected: 2, actual: %d", len(identitiesFetched))
+	if len(personaeFetched) != 2 {
+		t.Fatalf("bad: length of personae; expected: 2, actual: %d", len(personaeFetched))
 	}
 
-	identitiesFetched, err = is.memDBIdentitiesByMetadata(map[string]string{
+	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
 		"testkey3": "testmetadatavalue3",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(identitiesFetched) != 1 {
-		t.Fatalf("bad: length of identities; expected: 1, actual: %d", len(identitiesFetched))
+	if len(personaeFetched) != 1 {
+		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
 	}
 
-	err = is.memDBDeleteIdentityByID("testidentityid")
+	err = is.memDBDeletePersonaByID("testpersonaid")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	identityFetched, err = is.memDBIdentityByID("testidentityid")
+	personaFetched, err = is.memDBPersonaByID("testpersonaid")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if identityFetched != nil {
-		t.Fatalf("expected a nil identity")
+	if personaFetched != nil {
+		t.Fatalf("expected a nil persona")
 	}
 }
 
@@ -214,83 +214,83 @@ func TestIdentityStore_IdentityRegister(t *testing.T) {
 
 	is := TestIdentityStoreWithGithubAuth(t)
 	if is == nil {
-		t.Fatal("failed to create test identity store")
+		t.Fatal("failed to create test persona store")
 	}
 
-	identityData := map[string]interface{}{
-		"name":       "testidentityname",
+	personaData := map[string]interface{}{
+		"name":       "testpersonaname",
 		"mount_path": "github",
 		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
-	identityReq := &logical.Request{
+	personaReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "identity",
-		Data:      identityData,
+		Path:      "persona",
+		Data:      personaData,
 	}
 
-	// Register the identity
-	resp, err = is.HandleRequest(identityReq)
+	// Register the persona
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 
 	idRaw, ok := resp.Data["id"]
 	if !ok {
-		t.Fatalf("identity id not present in identity register response")
+		t.Fatalf("persona id not present in persona register response")
 	}
 
 	id := idRaw.(string)
 	if id == "" {
-		t.Fatalf("invalid identity id in identity register response")
+		t.Fatalf("invalid persona id in persona register response")
 	}
 
 	entityIDRaw, ok := resp.Data["entity_id"]
 	if !ok {
-		t.Fatalf("entity id not present in identity register response")
+		t.Fatalf("entity id not present in persona register response")
 	}
 
 	entityID := entityIDRaw.(string)
 	if entityID == "" {
-		t.Fatalf("invalid entity id in identity register response")
+		t.Fatalf("invalid entity id in persona register response")
 	}
 }
 
-func TestIdentityStore_IdentityUpdate(t *testing.T) {
+func TestIdentityStore_PersonaUpdate(t *testing.T) {
 	var err error
 	var resp *logical.Response
 	is := TestIdentityStoreWithGithubAuth(t)
 
 	updateData := map[string]interface{}{
-		"name":       "updatedidentityname",
+		"name":       "updatedpersonaname",
 		"mount_path": "github",
 		"metadata":   []string{"organization:updatedorganization", "team:updatedteam"},
 	}
 
 	updateReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "identity/id/invalididentityid",
+		Path:      "persona/id/invalidpersonaid",
 		Data:      updateData,
 	}
 
-	// Try to update an non-existent identity
+	// Try to update an non-existent persona
 	resp, err = is.HandleRequest(updateReq)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp == nil || !resp.IsError() {
-		t.Fatalf("expected an error due to invalid identity id")
+		t.Fatalf("expected an error due to invalid persona id")
 	}
 
 	registerData := map[string]interface{}{
-		"name":       "testidentityname",
+		"name":       "testpersonaname",
 		"mount_path": "github",
 		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
 	registerReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "identity",
+		Path:      "persona",
 		Data:      registerData,
 	}
 
@@ -301,14 +301,14 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 
 	idRaw, ok := resp.Data["id"]
 	if !ok {
-		t.Fatalf("identity id not present in response")
+		t.Fatalf("persona id not present in response")
 	}
 	id := idRaw.(string)
 	if id == "" {
-		t.Fatalf("invalid identity id")
+		t.Fatalf("invalid persona id")
 	}
 
-	updateReq.Path = "identity/id/" + id
+	updateReq.Path = "persona/id/" + id
 	resp, err = is.HandleRequest(updateReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
@@ -323,12 +323,12 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 
-	identityMetadata := resp.Data["metadata"].(map[string]string)
-	updatedOrg := identityMetadata["organization"]
-	updatedTeam := identityMetadata["team"]
+	personaMetadata := resp.Data["metadata"].(map[string]string)
+	updatedOrg := personaMetadata["organization"]
+	updatedTeam := personaMetadata["team"]
 
-	if resp.Data["name"] != "updatedidentityname" || updatedOrg != "updatedorganization" || updatedTeam != "updatedteam" {
-		t.Fatalf("failed to update identity information; \n response data: %#v\n", resp.Data)
+	if resp.Data["name"] != "updatedpersonaname" || updatedOrg != "updatedorganization" || updatedTeam != "updatedteam" {
+		t.Fatalf("failed to update persona information; \n response data: %#v\n", resp.Data)
 	}
 
 	delete(registerReq.Data, "name")
@@ -338,10 +338,10 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	if resp == nil || !resp.IsError() {
-		t.Fatalf("expected error due to missing identity name")
+		t.Fatalf("expected error due to missing persona name")
 	}
 
-	registerReq.Data["name"] = "testidentityname"
+	registerReq.Data["name"] = "testpersonaname"
 	delete(registerReq.Data, "mount_path")
 
 	resp, err = is.HandleRequest(registerReq)
@@ -353,21 +353,21 @@ func TestIdentityStore_IdentityUpdate(t *testing.T) {
 	}
 }
 
-func TestIdentityStore_IdentityReadDelete(t *testing.T) {
+func TestIdentityStore_PersonaReadDelete(t *testing.T) {
 	var err error
 	var resp *logical.Response
 
 	is := TestIdentityStoreWithGithubAuth(t)
 
 	registerData := map[string]interface{}{
-		"name":       "testidentityname",
+		"name":       "testpersonaname",
 		"mount_path": "github",
 		"metadata":   []string{"organization:hashicorp", "team:vault"},
 	}
 
 	registerReq := &logical.Request{
 		Operation: logical.UpdateOperation,
-		Path:      "identity",
+		Path:      "persona",
 		Data:      registerData,
 	}
 
@@ -378,19 +378,19 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 
 	idRaw, ok := resp.Data["id"]
 	if !ok {
-		t.Fatalf("identity id not present in response")
+		t.Fatalf("persona id not present in response")
 	}
 	id := idRaw.(string)
 	if id == "" {
-		t.Fatalf("invalid identity id")
+		t.Fatalf("invalid persona id")
 	}
 
-	// Read it back using identity id
-	identityReq := &logical.Request{
+	// Read it back using persona id
+	personaReq := &logical.Request{
 		Operation: logical.ReadOperation,
-		Path:      "identity/id/" + id,
+		Path:      "persona/id/" + id,
 	}
-	resp, err = is.HandleRequest(identityReq)
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
@@ -399,7 +399,7 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 		resp.Data["entity_id"].(string) == "" ||
 		resp.Data["name"].(string) != registerData["name"] ||
 		resp.Data["mount_type"].(string) != "github" {
-		t.Fatalf("bad: identity read response; \nexpected: %#v \nactual: %#v\n", registerData, resp.Data)
+		t.Fatalf("bad: persona read response; \nexpected: %#v \nactual: %#v\n", registerData, resp.Data)
 	}
 
 	_, ok = resp.Data["mount_id"]
@@ -407,18 +407,18 @@ func TestIdentityStore_IdentityReadDelete(t *testing.T) {
 		t.Fatal("mount id should never be returned")
 	}
 
-	identityReq.Operation = logical.DeleteOperation
-	resp, err = is.HandleRequest(identityReq)
+	personaReq.Operation = logical.DeleteOperation
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 
-	identityReq.Operation = logical.ReadOperation
-	resp, err = is.HandleRequest(identityReq)
+	personaReq.Operation = logical.ReadOperation
+	resp, err = is.HandleRequest(personaReq)
 	if err != nil || (resp != nil && resp.IsError()) {
 		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 	if resp != nil {
-		t.Fatalf("bad: identity read response; expected: nil, actual: %#v\n", resp)
+		t.Fatalf("bad: persona read response; expected: nil, actual: %#v\n", resp)
 	}
 }
