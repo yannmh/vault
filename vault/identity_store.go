@@ -2,6 +2,7 @@ package vault
 
 import (
 	"fmt"
+	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/vault/helper/locksutil"
@@ -41,10 +42,8 @@ func NewIdentityStore(core *Core, config *logical.BackendConfig) (*identityStore
 			entityPaths(iStore),
 			personaPaths(iStore),
 		),
+		Invalidate: iStore.Invalidate,
 	}
-
-	// Not setting iStore.Invalidate here because there is no storage path
-	// at the moment which affects the state of identity store.
 
 	_, err = iStore.Setup(config)
 	if err != nil {
@@ -52,6 +51,29 @@ func NewIdentityStore(core *Core, config *logical.BackendConfig) (*identityStore
 	}
 
 	return iStore, nil
+}
+
+// Invalidate is a callback wherein the backend is informed that the value at
+// the given key is updated. In identity store's case, it would be the entity
+// storage entries that get updated. The value needs to be read and MemDB needs
+// to be updated accordingly.
+func (i *identityStore) Invalidate(key string) {
+	switch {
+	case strings.HasPrefix(key, "entities/"):
+		bucketEntry, err := i.storagePacker.Get(key)
+		if err != nil {
+			i.logger.Error("failed to refresh entities", "key", key, "error", err)
+			return
+		}
+		for _, entity := range bucketEntry.Items {
+			// Only update MemDB and don't hit the storage again
+			err = i.upsertEntity(entity, nil, false)
+			if err != nil {
+				i.logger.Error("failed to update entity in MemDB", "error", err)
+				return
+			}
+		}
+	}
 }
 
 // EntityByPersonaFactors fetches the entity based on factors of persona, i.e mount
