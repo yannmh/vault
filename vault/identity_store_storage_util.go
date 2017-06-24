@@ -26,7 +26,6 @@ const (
 type storagePacker struct {
 	config        *storagePackerConfig
 	view          logical.Storage
-	hashLock      sync.RWMutex
 	logger        log.Logger
 	configPersist sync.Once
 }
@@ -159,12 +158,9 @@ func (s *storageBucketEntry) upsert(entry *entityStorageEntry) error {
 // BucketIndex returns the bucket key index for a given storage entry key
 func (s *storagePacker) BucketIndex(key string) uint8 {
 	s.configPersist.Do(s.persistPackerConfigOnceFunc)
-
-	s.hashLock.Lock()
-	defer s.hashLock.Unlock()
-	s.config.HashFunc.Reset()
-	s.config.HashFunc.Write([]byte(key))
-	return uint8(s.config.HashFunc.Sum(nil)[0])
+	hf := md5.New()
+	hf.Write([]byte(key))
+	return uint8(hf.Sum(nil)[0])
 }
 
 // BucketKey returns the bucket key for a given entity ID
