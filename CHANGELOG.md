@@ -7,6 +7,8 @@ FEATURES:
 IMPROVEMENTS:
 
  * core: CORS allowed origins can now be configured [GH-2021]
+ * secret/ssh: Allow specifying the key ID format using template values for CA
+   type [GH-2888]
  * storage/s3: More efficient paging when an object has a lot of subobjects
    [GH-2780]
  * telemetry: Add support for DogStatsD [GH-2490]
@@ -15,8 +17,12 @@ BUG FIXES:
 
  * api/health: Don't treat standby `429` codes as an error [GH-2850]
  * api/leases: Fix lease lookup returning lease properties at the top level
+ * auth/token: Don't allow using the same token ID twice when manually
+   specifying [GH-2916]
  * core: Relocated `sys/leases/renew` returns same payload as original 
    `sys/leases` endpoint [GH-2891]
+ * secret/totp: Ensure codes can only be used once. This makes some automated
+   workflows harder but complies with the RFC. [GH-2908]
 
 ## 0.7.3 (June 7th, 2017)
 
