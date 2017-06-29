@@ -131,7 +131,7 @@ func (i *identityStore) CreateEntity(persona *logical.Persona) (*entityStorageEn
 	}
 
 	// Append the new persona to the new entity
-	entity.Personae = []*personaIndexEntry{
+	entity.Personas = []*personaIndexEntry{
 		newPersona,
 	}
 

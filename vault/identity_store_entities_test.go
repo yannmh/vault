@@ -187,7 +187,7 @@ func TestIdentityStore_MemDBEntityIndexes(t *testing.T) {
 		Metadata: map[string]string{
 			"someusefulkey": "someusefulvalue",
 		},
-		Personae: []*personaIndexEntry{
+		Personas: []*personaIndexEntry{
 			persona1,
 			persona2,
 		},
@@ -469,8 +469,8 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	if entity1 == nil {
 		t.Fatalf("failed to create entity: %v", err)
 	}
-	if len(entity1.Personae) != 2 {
-		t.Fatalf("bad: number of personae in entity; expected: 2, actual: %d", len(entity1.Personae))
+	if len(entity1.Personas) != 2 {
+		t.Fatalf("bad: number of personas in entity; expected: 2, actual: %d", len(entity1.Personas))
 	}
 
 	registerReq.Data = registerData2
@@ -512,8 +512,8 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 		t.Fatalf("failed to create entity: %v", err)
 	}
 
-	if len(entity2.Personae) != 2 {
-		t.Fatalf("bad: number of personae in entity; expected: 2, actual: %d", len(entity2.Personae))
+	if len(entity2.Personas) != 2 {
+		t.Fatalf("bad: number of personas in entity; expected: 2, actual: %d", len(entity2.Personas))
 	}
 
 	mergeData := map[string]interface{}{
@@ -551,12 +551,12 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 
 	ghMountTypeCount := 0
 	aliasMountTypeCount := 0
-	entity2Personae := resp.Data["personae"].([]interface{})
-	if len(entity2Personae) != 4 {
-		t.Fatalf("bad: number of personae in entity; expected: 4, actual: %d", len(entity2Personae))
+	entity2Personas := resp.Data["personas"].([]interface{})
+	if len(entity2Personas) != 4 {
+		t.Fatalf("bad: number of personas in entity; expected: 4, actual: %d", len(entity2Personas))
 	}
 
-	for _, personaRaw := range entity2Personae {
+	for _, personaRaw := range entity2Personas {
 		persona := personaRaw.(map[string]interface{})
 		mountType := persona["mount_type"].(string)
 		switch mountType {
@@ -579,10 +579,10 @@ func TestIdentityStore_MergeEntitiesByID(t *testing.T) {
 	}
 
 	if ghMountTypeCount != 2 {
-		t.Fatalf("incorrect number of personae with mount_type github; expected: 2, actual: %d", ghMountTypeCount)
+		t.Fatalf("incorrect number of personas with mount_type github; expected: 2, actual: %d", ghMountTypeCount)
 	}
 
 	if aliasMountTypeCount != 2 {
-		t.Fatalf("incorrect number of personae with mount_type EntityAlias; expected: 2, actual: %d", aliasMountTypeCount)
+		t.Fatalf("incorrect number of personas with mount_type EntityAlias; expected: 2, actual: %d", aliasMountTypeCount)
 	}
 }

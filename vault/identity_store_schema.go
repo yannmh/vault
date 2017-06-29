@@ -13,7 +13,7 @@ func identityStoreSchema() *memdb.DBSchema {
 
 	schemas := []func() *memdb.TableSchema{
 		entityTableSchema,
-		personaeTableSchema,
+		personasTableSchema,
 	}
 
 	for _, schemaFunc := range schemas {
@@ -27,9 +27,9 @@ func identityStoreSchema() *memdb.DBSchema {
 	return iStoreSchema
 }
 
-func personaeTableSchema() *memdb.TableSchema {
+func personasTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "personae",
+		Name: "personas",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
 				Name:   "id",

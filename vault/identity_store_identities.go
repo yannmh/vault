@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/vault/logical/framework"
 )
 
-// personaPaths returns the API endpoints to operate on personae.
+// personaPaths returns the API endpoints to operate on personas.
 // Following are the paths supported:
 // persona - To register/modify a persona
-// persona/id - To lookup, delete and list personae based on ID
+// persona/id - To lookup, delete and list personas based on ID
 func personaPaths(i *identityStore) []*framework.Path {
 	return []*framework.Path{
 		{
@@ -184,12 +184,12 @@ func (i *identityStore) handlePersonaUpdateCommon(req *logical.Request, d *frame
 		// a new entity for it.
 		if entity == nil {
 			entity = &entityStorageEntry{
-				Personae: []*personaIndexEntry{
+				Personas: []*personaIndexEntry{
 					persona,
 				},
 			}
 		} else {
-			entity.Personae = append(entity.Personae, persona)
+			entity.Personas = append(entity.Personas, persona)
 		}
 	} else {
 		// Verify that the combination of persona name and mount path is not
@@ -212,7 +212,7 @@ func (i *identityStore) handlePersonaUpdateCommon(req *logical.Request, d *frame
 			// Persona should be transferred from 'existingEntity' to 'entity'
 			i.deletePersonaFromEntity(existingEntity, persona)
 			previousEntity = existingEntity
-			entity.Personae = append(entity.Personae, persona)
+			entity.Personas = append(entity.Personas, persona)
 		} else {
 			// Update entity with modified persona
 			err = i.updatePersonaInEntity(existingEntity, persona)
@@ -247,8 +247,8 @@ func (i *identityStore) handlePersonaUpdateCommon(req *logical.Request, d *frame
 		return nil, err
 	}
 
-	// Index entity and its personae in MemDB and persist entity along with
-	// personae in storage. If the persona is being transferred over from
+	// Index entity and its personas in MemDB and persist entity along with
+	// personas in storage. If the persona is being transferred over from
 	// one entity to another, previous entity needs to get refreshed in MemDB
 	// and persisted in storage as well.
 	err = i.upsertEntity(entity, previousEntity, true)
@@ -300,13 +300,13 @@ func (i *identityStore) pathPersonaIDDelete(req *logical.Request, d *framework.F
 	return nil, i.deletePersona(personaID)
 }
 
-// pathPersonaIDList lists the IDs of all the valid personae in the identity
+// pathPersonaIDList lists the IDs of all the valid personas in the identity
 // store
 func (i *identityStore) pathPersonaIDList(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	ws := memdb.NewWatchSet()
-	iter, err := i.memDBPersonae(ws)
+	iter, err := i.memDBPersonas(ws)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch iterator for personae in memdb: %v", err)
+		return nil, fmt.Errorf("failed to fetch iterator for personas in memdb: %v", err)
 	}
 
 	var personaIDs []string

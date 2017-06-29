@@ -87,7 +87,7 @@ func TestIdentityStore_MemDBPersonaIndexes(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(persona, personaFetched) {
-		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
+		t.Fatalf("bad: mismatched personas; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
 	personaFetched, err = is.memDBPersonaByEntityID(entity.ID)
@@ -96,7 +96,7 @@ func TestIdentityStore_MemDBPersonaIndexes(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(persona, personaFetched) {
-		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
+		t.Fatalf("bad: mismatched personas; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
 	personaFetched, err = is.memDBPersonaByFactors(validateMountResp.MountID, "testpersonaname")
@@ -105,40 +105,40 @@ func TestIdentityStore_MemDBPersonaIndexes(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(persona, personaFetched) {
-		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
+		t.Fatalf("bad: mismatched personas; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	personaeFetched, err := is.memDBPersonaeByMetadata(map[string]string{
+	personasFetched, err := is.memDBPersonasByMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(personaeFetched) != 1 {
-		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
+	if len(personasFetched) != 1 {
+		t.Fatalf("bad: length of personas; expected: 1, actual: %d", len(personasFetched))
 	}
 
-	if !reflect.DeepEqual(persona, personaeFetched[0]) {
-		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
+	if !reflect.DeepEqual(persona, personasFetched[0]) {
+		t.Fatalf("bad: mismatched personas; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
+	personasFetched, err = is.memDBPersonasByMetadata(map[string]string{
 		"testkey2": "testmetadatavalue2",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(personaeFetched) != 1 {
-		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
+	if len(personasFetched) != 1 {
+		t.Fatalf("bad: length of personas; expected: 1, actual: %d", len(personasFetched))
 	}
 
-	if !reflect.DeepEqual(persona, personaeFetched[0]) {
-		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
+	if !reflect.DeepEqual(persona, personasFetched[0]) {
+		t.Fatalf("bad: mismatched personas; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
-	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
+	personasFetched, err = is.memDBPersonasByMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 		"testkey2": "testmetadatavalue2",
 	})
@@ -146,12 +146,12 @@ func TestIdentityStore_MemDBPersonaIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(personaeFetched) != 1 {
-		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
+	if len(personasFetched) != 1 {
+		t.Fatalf("bad: length of personas; expected: 1, actual: %d", len(personasFetched))
 	}
 
-	if !reflect.DeepEqual(persona, personaeFetched[0]) {
-		t.Fatalf("bad: mismatched personae; expected: %#v\n actual: %#v\n", persona, personaFetched)
+	if !reflect.DeepEqual(persona, personasFetched[0]) {
+		t.Fatalf("bad: mismatched personas; expected: %#v\n actual: %#v\n", persona, personaFetched)
 	}
 
 	persona2 := &personaIndexEntry{
@@ -171,26 +171,26 @@ func TestIdentityStore_MemDBPersonaIndexes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
+	personasFetched, err = is.memDBPersonasByMetadata(map[string]string{
 		"testkey1": "testmetadatavalue1",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(personaeFetched) != 2 {
-		t.Fatalf("bad: length of personae; expected: 2, actual: %d", len(personaeFetched))
+	if len(personasFetched) != 2 {
+		t.Fatalf("bad: length of personas; expected: 2, actual: %d", len(personasFetched))
 	}
 
-	personaeFetched, err = is.memDBPersonaeByMetadata(map[string]string{
+	personasFetched, err = is.memDBPersonasByMetadata(map[string]string{
 		"testkey3": "testmetadatavalue3",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(personaeFetched) != 1 {
-		t.Fatalf("bad: length of personae; expected: 1, actual: %d", len(personaeFetched))
+	if len(personasFetched) != 1 {
+		t.Fatalf("bad: length of personas; expected: 1, actual: %d", len(personasFetched))
 	}
 
 	err = is.memDBDeletePersonaByID("testpersonaid")

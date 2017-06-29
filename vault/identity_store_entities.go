@@ -184,10 +184,10 @@ func (i *identityStore) pathEntityMergeID(req *logical.Request, d *framework.Fie
 			return logical.ErrorResponse("acquired lock for an undesired entity"), nil
 		}
 
-		for _, persona := range fromEntity.Personae {
-			// Special case the personae that gets transfered over due to merge
+		for _, persona := range fromEntity.Personas {
+			// Special case the personas that gets transfered over due to merge
 			// operation. This might also aid in controlling any actions to be
-			// taken on the merged personae.
+			// taken on the merged personas.
 			persona.MountType = entityAliasMountType
 
 			// Set the desired entity id
@@ -202,7 +202,7 @@ func (i *identityStore) pathEntityMergeID(req *logical.Request, d *framework.Fie
 			}
 
 			// Add the persona to the desired entity
-			toEntity.Personae = append(toEntity.Personae, persona)
+			toEntity.Personas = append(toEntity.Personas, persona)
 		}
 
 		// Add the entity from which we are merging from to the list of entities
@@ -316,11 +316,11 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 	}
 
 	var personaIDs []string
-	for _, persona := range entity.Personae {
+	for _, persona := range entity.Personas {
 		personaIDs = append(personaIDs, persona.ID)
 	}
 
-	respData["personae"] = personaIDs
+	respData["personas"] = personaIDs
 
 	// Update MemDB and persist entity object
 	err = i.upsertEntity(entity, nil, true)
@@ -329,7 +329,7 @@ func (i *identityStore) handleEntityUpdateCommon(req *logical.Request, d *framew
 	}
 
 	// Return ID of the entity that was either created or updated along with
-	// its personae
+	// its personas
 	return &logical.Response{
 		Data: respData,
 	}, nil

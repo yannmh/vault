@@ -281,7 +281,7 @@ func testTokenStore(t testing.TB, c *Core) *TokenStore {
 
 // TestIdentityStoreWithGithubAuth returns an instance of identity store which
 // is mounted by default. This function also enables the github auth backend to
-// assist with testing personae and entities that require an valid mount ID
+// assist with testing personas and entities that require an valid mount ID
 // of an auth backend.
 func TestIdentityStoreWithGithubAuth(t testing.TB) *identityStore {
 	// Add github credential factory to core config
